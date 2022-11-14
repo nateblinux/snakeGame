@@ -2,19 +2,42 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+struct snake_char{
+    int x;
+    int y;
+
+    struct snake_char * next;
+    struct snake_char * prev;
+};
+
 void start_screen(WINDOW *scrn, int * row, int * col);
 
 void game_loop(WINDOW *scrn, int start_x, int start_y);
 
 WINDOW * init_snake(int * curr_x, int * curr_y);
 
+void new_head(int x, int y);
+
+void del_tail();
+
 int row, col;
+
+struct snake_char * head = NULL;
+struct snake_char * tail = NULL;
 
 int main(){
     int curr_x, curr_y;//terminal height, width, current x and y of snake head
     int ch;
     char dir = 'l'; //current direction l, r, u, or d start by going left.
     WINDOW *mywin; //game window
+
+    //initalize the linked list for the snake body
+    head = (struct snake_char *)malloc(sizeof(struct snake_char));
+    tail = (struct snake_char *)malloc(sizeof(struct snake_char));
+    head->prev = tail;
+    head->next = NULL;
+    tail->next = head;
+    tail->prev = NULL;
 
     initscr(); //start curses screen
 
@@ -96,9 +119,10 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
         if(ch == KEY_BACKSPACE){
             break;
         }
-
-        //delete snake head
-        mvwdelch(mywin, curr_x, curr_y);
+        
+        //delete snake head by replaceing character with a space
+        mvwaddch(mywin, tail->x, tail->y, ' ');
+        del_tail();
 
         //check current direction and move xy coordinates of snake head
         if(dir == 'l'){
@@ -106,7 +130,7 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
             else
                 curr_y--;
         }else if(dir == 'r'){
-            if(curr_y == col-3);//col - 3 is location of bottom of screen
+            if(curr_y == col-3);//col - 3 is location of right of screen
             else
                 curr_y++;
         }else if(dir == 'u'){
@@ -114,13 +138,13 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
             else
                 curr_x--;
         }else{
-            if(curr_x == row-3);//row - 3 is rightmost border
+            if(curr_x == row-3);
             else
                  curr_x++;
         }
-
+        new_head(curr_x, curr_y);
         //redraw head in new location
-        mvwaddch(mywin, curr_x, curr_y, ACS_BLOCK );
+        mvwaddch(mywin, head->x, head->y, ACS_BLOCK );
 
         //refresh the window to apply changes
         wrefresh(mywin);
@@ -140,12 +164,33 @@ WINDOW * init_snake(int * curr_x, int * curr_y){
 
     wattron(mywin, COLOR_PAIR(1));
 
+    head->x = *curr_x;
+    head->y = *curr_y;
+    tail->x = *curr_x - 1;
+    tail->y = *curr_y;
+
     //print the snake head 
-    mvwaddch(mywin, *curr_x, *curr_y, ACS_BLOCK);
+    mvwaddch(mywin, head->x, head->y, ACS_BLOCK);
+    mvwaddch(mywin, tail->x, tail->y, ACS_BLOCK);
     wrefresh(mywin);//refresh snake window to apply changes
 
     //add the keypad listener
     keypad(mywin, TRUE);
 
     return mywin;
+}
+
+void new_head(int x, int y){
+    struct snake_char * new = (struct snake_char *)malloc(sizeof(struct snake_char));
+    new->x = x;
+    new->y = y;
+    new->prev = head;
+    new->next = NULL;
+    head->next = new;
+    head = new;
+}
+
+void del_tail(){
+    tail = tail->next;
+    tail->prev = NULL;
 }
