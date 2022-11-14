@@ -54,7 +54,7 @@ int main(){
 
     //draw the main screen
     start_screen(stdscr, &row, &col);
-
+    curs_set(0); //hide the cursor if allowed;
 
     //create window for snake to live in sitting inside border
     mywin = init_snake(&curr_x, &curr_y);
@@ -62,6 +62,7 @@ int main(){
     wgetch(mywin);
     //dont wait for inputs ie getch returns error if no keystroke
     nodelay(mywin, TRUE);
+
 
     //main game loop
     game_loop(mywin, curr_x, curr_y);
