@@ -15,13 +15,13 @@ struct snake_char{
 };
 
 //initializes the main screen with border
-void start_screen(WINDOW *scrn, int * row, int * col);
+void start_screen();
 
 //main game loop/
-void game_loop(WINDOW *scrn, int start_x, int start_y);
+void game_loop(int start_x, int start_y);
 
 //creates and returns the window for the snakepit
-void init_snake(WINDOW * mywin, int * curr_x, int * curr_y);
+void init_snake(int * curr_x, int * curr_y);
 
 //adds a new element to the queue at x, y
 void new_head(int x, int y);
@@ -31,8 +31,6 @@ void del_tail();
 
 //global for height and width of terminal window 
 
-int row, col;
-
 //global head and tail of snake
 struct snake_char * head = NULL;
 struct snake_char * tail = NULL;
@@ -41,8 +39,7 @@ int main(){
     int curr_x, curr_y;//terminal height, width, current x and y of snake head
     int ch;
     char dir = 'l'; //current direction l, r, u, or d start by going left.
-    WINDOW *mywin; //game window
-
+   
     //initalize the linked list for the snake body
     head = (struct snake_char *)malloc(sizeof(struct snake_char));
     tail = (struct snake_char *)malloc(sizeof(struct snake_char));
@@ -53,23 +50,23 @@ int main(){
 
     initscr(); //start curses screen
 
-    //check if terminal supports colors
+    //check if terminal supports COLORs
     if(has_colors() == FALSE)
 	{	endwin();
-		printf("Your terminal does not support color\n");
+		printf("Your terminal does not support COLOR\n");
 		exit(1);
 	}
 
-    //create a color pair for snake head
+    //create a COLOR pair for snake head
     start_color();
     init_pair(1, COLOR_GREEN, COLOR_GREEN);
 
     //draw the main screen
-    start_screen(stdscr, &row, &col);
+    start_screen(stdscr, &LINES, &COLS);
     curs_set(0); //hide the cursor if allowed;
 
     //create window for snake to live in sitting inside border
-    init_snake(stdscr, &curr_x, &curr_y);
+    init_snake(&curr_x, &curr_y);
     //get a keystroke to start
     wgetch(stdscr);
     //dont wait for inputs ie getch returns error if no keystroke
@@ -77,34 +74,33 @@ int main(){
 
 
     //main game loop
-    game_loop(stdscr, curr_x, curr_y);
-    //turn off colors and end curses
+    game_loop(curr_x, curr_y);
+    //turn off COLORs and end curses
     attroff(COLOR_PAIR(1));
     endwin();
     return 0;
 }
 
-void start_screen(WINDOW *scrn, int * row, int * col){
-     //color pair for border
+void start_screen(){
+     //COLOR pair for border
     init_pair(2, COLOR_RED, COLOR_RED);
 
     //get the size of vthe terminal window
-    getmaxyx(scrn,*row,*col);
     noecho();
 
 
-    //create border (window, left side, right side, top, bottom, corner, corner, corner, corner) and apply color
-    wattron(scrn, COLOR_PAIR(2));
-    wborder(scrn, '|', '|', '-', '-', '+', '+', '+', '+');
+    //create border (window, left side, right side, top, bottom, corner, corner, corner, corner) and apply COLOR
+    attron(COLOR_PAIR(2));
+    border('|', '|', '-', '-', '+', '+', '+', '+');
     attroff(COLOR_PAIR(2));
 }
 
-void game_loop(WINDOW *mywin, int curr_x, int curr_y){
+void game_loop(int curr_x, int curr_y){
     char dir = 'r';
     int ch;
     while(1){
         //get next keystroke from input buffer
-        ch = wgetch(mywin);
+        ch = getch();
 
         //check keystroke
         switch(ch){
@@ -137,16 +133,16 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
         }
         
         //delete snake head by replaceing character with a space
-        mvwaddch(mywin, tail->x, tail->y, ' ');
+        mvaddch(tail->x, tail->y, ' ');
         del_tail();
 
         //check current direction and move xy coordinates of snake head
         if(dir == 'l'){
-            if(curr_y == 1);//if statement detects collision with border
+            if(curr_y == 1);//if statement detects COLSlision with border
             else
                 curr_y--;
         }else if(dir == 'r'){
-            if(curr_y == col-2);//col - 2 is location of right of screen
+            if(curr_y == COLS-2);//COLS - 2 is location of right of screen
             else
                 curr_y++;
         }else if(dir == 'u'){
@@ -154,7 +150,7 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
             else
                 curr_x--;
         }else{
-            if(curr_x == row-2);
+            if(curr_x == LINES-2);
             else
                  curr_x++;
         }
@@ -162,30 +158,30 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
         //create new head
         new_head(curr_x, curr_y);
         //redraw head in new location
-        mvwaddch(mywin, head->x, head->y, SNAKE_CHAR);
+        mvaddch(head->x, head->y, SNAKE_CHAR);
 
         //refresh the window to apply changes
-        wrefresh(mywin);
+        refresh();
         usleep(100000);//wait 250ms or .25 sec
         
     }
 }
 
-void init_snake(WINDOW * mywin, int * curr_x, int * curr_y){
+void init_snake(int * curr_x, int * curr_y){
 
     //create the snakepit window
-    //WINDOW * mywin = newwin(row - 2, col - 2, 1,1);
+    //WINDOW * scrn = newwin(LINES - 2, COLS - 2, 1,1);
     refresh();
 
-    //create snake color pair
+    //create snake COLOR pair
     init_pair(1, COLOR_GREEN, COLOR_BLACK);
 
     //initialize the x and y coordinates of snake head
-    *curr_x = row / 2;
-    *curr_y = (col / 2)-5;
+    *curr_x = LINES / 2;
+    *curr_y = (COLS / 2)-5;
 
-    //turn on color pair
-    wattron(mywin, COLOR_PAIR(1));
+    //turn on COLOR pair
+    attron(COLOR_PAIR(1));
 
 
     //initialize head and tail of snake
@@ -207,17 +203,17 @@ void init_snake(WINDOW * mywin, int * curr_x, int * curr_y){
     struct snake_char * next = (struct snake_char *)malloc(sizeof(struct snake_char));
     next = tail;
     while(next != NULL){
-        mvwaddch(mywin, next->x, next->y, SNAKE_CHAR);
+        mvaddch(next->x, next->y, SNAKE_CHAR);
         next = next->next;
     }
     
-    wrefresh(mywin);//refresh snake window to apply changes
+    refresh();//refresh snake window to apply changes
 
     //add the keypad listener
-    keypad(mywin, TRUE);
+    keypad(stdscr, TRUE);
 
     //return window with initial config
-    //return mywin;
+    //return scrn;
 }
 
 //add a new head to the linked list
