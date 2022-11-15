@@ -100,7 +100,7 @@ void start_screen(WINDOW *scrn, int * row, int * col){
 }
 
 void game_loop(WINDOW *mywin, int curr_x, int curr_y){
-    char dir = 'l';
+    char dir = 'r';
     int ch;
     while(1){
         //get next keystroke from input buffer
