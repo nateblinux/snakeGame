@@ -166,7 +166,7 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
 
         //refresh the window to apply changes
         wrefresh(mywin);
-        delay_output(250);//wait 250ms or .25 sec
+        usleep(100000);//wait 250ms or .25 sec
         
     }
 }
