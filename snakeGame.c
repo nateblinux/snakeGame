@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#define INIT_LEN 5 //inital length of snake always 2 or greater
+
 //structure to allow for a linked list implementation of a queue for the snake
 struct snake_char{
     int x;
@@ -170,28 +172,50 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
 
 WINDOW * init_snake(int * curr_x, int * curr_y){
 
+    //create the snakepit window
     WINDOW * mywin = newwin(row - 2, col - 2, 1,1);
     refresh();
 
+    //create snake color pair
     init_pair(1, COLOR_GREEN, COLOR_BLACK);
-    *curr_x = row / 2;
-    *curr_y = col / 2;
 
+    //initialize the x and y coordinates of snake head
+    *curr_x = row / 2;
+    *curr_y = (col / 2)-5;
+
+    //turn on color pair
     wattron(mywin, COLOR_PAIR(1));
 
+
+    //initialize head and tail of snake
     head->x = *curr_x;
     head->y = *curr_y;
-    tail->x = *curr_x - 1;
-    tail->y = *curr_y;
+    tail->x = *curr_x;
+    tail->y = *curr_y - 1;
 
-    //print the snake head 
-    mvwaddch(mywin, head->x, head->y, ACS_BLOCK);
-    mvwaddch(mywin, tail->x, tail->y, ACS_BLOCK);
+
+    //add the rest of the initial snake body elements
+    for(int i = 0; i < INIT_LEN - 2; i++){
+        *curr_y += 1;
+        new_head(*curr_x, *curr_y);
+    }
+
+    
+
+    //print the snake head by looping through the linked list
+    struct snake_char * next = (struct snake_char *)malloc(sizeof(struct snake_char));
+    next = tail;
+    while(next != NULL){
+        mvwaddch(mywin, next->x, next->y, ACS_BLOCK);
+        next = next->next;
+    }
+    
     wrefresh(mywin);//refresh snake window to apply changes
 
     //add the keypad listener
     keypad(mywin, TRUE);
 
+    //return window with initial config
     return mywin;
 }
 
