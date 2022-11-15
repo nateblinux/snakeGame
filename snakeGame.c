@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+//structure to allow for a linked list implementation of a queue for the snake
 struct snake_char{
     int x;
     int y;
@@ -10,18 +11,26 @@ struct snake_char{
     struct snake_char * prev;
 };
 
+//initializes the main screen with border
 void start_screen(WINDOW *scrn, int * row, int * col);
 
+//main game loop/
 void game_loop(WINDOW *scrn, int start_x, int start_y);
 
+//creates and returns the window for the snakepit
 WINDOW * init_snake(int * curr_x, int * curr_y);
 
+//adds a new element to the queue at x, y
 void new_head(int x, int y);
 
+//deletes the tail of the snake from the queue
 void del_tail();
+
+//global for height and width of terminal window 
 
 int row, col;
 
+//global head and tail of snake
 struct snake_char * head = NULL;
 struct snake_char * tail = NULL;
 
@@ -114,6 +123,9 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
                 flushinp();
                 dir='r';
                 break;
+            default:
+                flushinp();
+                break;
         }
 
         //break if backspace
@@ -143,6 +155,8 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
             else
                  curr_x++;
         }
+
+        //create new head
         new_head(curr_x, curr_y);
         //redraw head in new location
         mvwaddch(mywin, head->x, head->y, ACS_BLOCK );
@@ -181,6 +195,7 @@ WINDOW * init_snake(int * curr_x, int * curr_y){
     return mywin;
 }
 
+//add a new head to the linked list
 void new_head(int x, int y){
     struct snake_char * new = (struct snake_char *)malloc(sizeof(struct snake_char));
     new->x = x;
@@ -191,6 +206,7 @@ void new_head(int x, int y){
     head = new;
 }
 
+//delete the tail of the linked list
 void del_tail(){
     tail = tail->next;
     tail->prev = NULL;
