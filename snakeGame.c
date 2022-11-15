@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #define INIT_LEN 5 //inital length of snake always 2 or greater
+#define SNAKE_CHAR 'O'
 
 //structure to allow for a linked list implementation of a queue for the snake
 struct snake_char{
@@ -61,7 +62,7 @@ int main(){
 
     //create a color pair for snake head
     start_color();
-    init_pair(1, COLOR_GREEN, COLOR_BLACK);
+    init_pair(1, COLOR_GREEN, COLOR_GREEN);
 
     //draw the main screen
     start_screen(stdscr, &row, &col);
@@ -130,8 +131,8 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
                 break;
         }
 
-        //break if backspace
-        if(ch == KEY_BACKSPACE){
+        //break if spacebar
+        if(ch == ' '){
             break;
         }
         
@@ -161,7 +162,7 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
         //create new head
         new_head(curr_x, curr_y);
         //redraw head in new location
-        mvwaddch(mywin, head->x, head->y, ACS_BLOCK );
+        mvwaddch(mywin, head->x, head->y, SNAKE_CHAR);
 
         //refresh the window to apply changes
         wrefresh(mywin);
@@ -206,7 +207,7 @@ WINDOW * init_snake(int * curr_x, int * curr_y){
     struct snake_char * next = (struct snake_char *)malloc(sizeof(struct snake_char));
     next = tail;
     while(next != NULL){
-        mvwaddch(mywin, next->x, next->y, ACS_BLOCK);
+        mvwaddch(mywin, next->x, next->y, SNAKE_CHAR);
         next = next->next;
     }
     
