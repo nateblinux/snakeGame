@@ -21,7 +21,7 @@ void start_screen(WINDOW *scrn, int * row, int * col);
 void game_loop(WINDOW *scrn, int start_x, int start_y);
 
 //creates and returns the window for the snakepit
-WINDOW * init_snake(int * curr_x, int * curr_y);
+void init_snake(WINDOW * mywin, int * curr_x, int * curr_y);
 
 //adds a new element to the queue at x, y
 void new_head(int x, int y);
@@ -69,15 +69,15 @@ int main(){
     curs_set(0); //hide the cursor if allowed;
 
     //create window for snake to live in sitting inside border
-    mywin = init_snake(&curr_x, &curr_y);
+    init_snake(stdscr, &curr_x, &curr_y);
     //get a keystroke to start
-    wgetch(mywin);
+    wgetch(stdscr);
     //dont wait for inputs ie getch returns error if no keystroke
-    nodelay(mywin, TRUE);
+    nodelay(stdscr, TRUE);
 
 
     //main game loop
-    game_loop(mywin, curr_x, curr_y);
+    game_loop(stdscr, curr_x, curr_y);
     //turn off colors and end curses
     attroff(COLOR_PAIR(1));
     endwin();
@@ -142,19 +142,19 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
 
         //check current direction and move xy coordinates of snake head
         if(dir == 'l'){
-            if(curr_y == 0);//if statement detects collision with border
+            if(curr_y == 1);//if statement detects collision with border
             else
                 curr_y--;
         }else if(dir == 'r'){
-            if(curr_y == col-3);//col - 3 is location of right of screen
+            if(curr_y == col-2);//col - 2 is location of right of screen
             else
                 curr_y++;
         }else if(dir == 'u'){
-            if(curr_x == 0);
+            if(curr_x == 1);
             else
                 curr_x--;
         }else{
-            if(curr_x == row-3);
+            if(curr_x == row-2);
             else
                  curr_x++;
         }
@@ -171,10 +171,10 @@ void game_loop(WINDOW *mywin, int curr_x, int curr_y){
     }
 }
 
-WINDOW * init_snake(int * curr_x, int * curr_y){
+void init_snake(WINDOW * mywin, int * curr_x, int * curr_y){
 
     //create the snakepit window
-    WINDOW * mywin = newwin(row - 2, col - 2, 1,1);
+    //WINDOW * mywin = newwin(row - 2, col - 2, 1,1);
     refresh();
 
     //create snake color pair
@@ -217,7 +217,7 @@ WINDOW * init_snake(int * curr_x, int * curr_y){
     keypad(mywin, TRUE);
 
     //return window with initial config
-    return mywin;
+    //return mywin;
 }
 
 //add a new head to the linked list
