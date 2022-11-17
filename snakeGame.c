@@ -107,20 +107,28 @@ void game_loop(int curr_x, int curr_y){
             case KEY_UP:
                 //flush input buffer to prevent stacking keystrokes
                 flushinp();
-                //change direction
-                dir='u';
+                //change direction dont allow reversing
+                if(dir == 'd');
+                else
+                    dir='u';
                 break;
             case KEY_DOWN:
                 flushinp();
-                dir='d';
+                if(dir == 'u');
+                else
+                    dir='d';
                 break;
             case KEY_LEFT:
                 flushinp();
-                dir='l';
+                if(dir == 'r');
+                else
+                    dir='l';
                 break;
             case KEY_RIGHT:
                 flushinp();
-                dir='r';
+                if(dir == 'l');
+                else
+                    dir='r';
                 break;
             default:
                 flushinp();
