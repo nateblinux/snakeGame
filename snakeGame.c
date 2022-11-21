@@ -179,7 +179,12 @@ void game_loop(int curr_x, int curr_y){
 
         //refresh the window to apply changes
         refresh();
-        usleep(100000);//wait 250ms or .25 sec
+
+        //slow vertical speed to make vertical speed feel consistent with horizontal speed
+        if(dir == 'u' || dir == 'd')
+            usleep(120000);
+        else
+            usleep(100000);//wait 250ms or .25 sec
         
     }
 }
