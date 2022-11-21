@@ -4,6 +4,8 @@
 
 #define INIT_LEN 5 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'O'
+#define WIN_MSG "YOU WON!"
+#define LOSE_MSG "GAME OVER"!
 
 //structure to allow for a linked list implementation of a queue for the snake
 struct snake_char{
@@ -13,6 +15,13 @@ struct snake_char{
     struct snake_char * next;
     struct snake_char * prev;
 };
+
+struct food {
+    int X;
+    int Y;
+    char symbol;
+
+}food;
 
 //initializes the main screen with border
 void start_screen();
