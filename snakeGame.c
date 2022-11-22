@@ -5,7 +5,7 @@
 #define INIT_LEN 5 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'O'
 #define WIN_MSG "YOU WON!"
-#define LOSE_MSG "GAME OVER"!
+#define LOSE_MSG "GAME OVER"
 
 //structure to allow for a linked list implementation of a queue for the snake
 struct snake_char{
@@ -38,7 +38,11 @@ void new_head(int x, int y);
 //deletes the tail of the snake from the queue
 void del_tail();
 
-//global for height and width of terminal window 
+//draw game over screen
+void game_over();
+
+//draw the win screen
+void win();
 
 //global head and tail of snake
 struct snake_char * head = NULL;
@@ -107,7 +111,8 @@ void start_screen(){
 void game_loop(int curr_x, int curr_y){
     char dir = 'r';
     int ch;
-    while(1){
+    int end = 0;
+    while(!end){
         //get next keystroke from input buffer
         ch = getch();
 
@@ -117,25 +122,37 @@ void game_loop(int curr_x, int curr_y){
                 //flush input buffer to prevent stacking keystrokes
                 flushinp();
                 //change direction dont allow reversing
-                if(dir == 'd');
+                if(dir == 'd'){
+                    game_over();
+                    end = 1;
+                }               
                 else
                     dir='u';
                 break;
             case KEY_DOWN:
                 flushinp();
-                if(dir == 'u');
+                if(dir == 'u'){
+                    game_over();
+                    end = 1;
+                }
                 else
                     dir='d';
                 break;
             case KEY_LEFT:
                 flushinp();
-                if(dir == 'r');
+                if(dir == 'r'){
+                    game_over();
+                    end = 1;
+                }
                 else
                     dir='l';
                 break;
             case KEY_RIGHT:
                 flushinp();
-                if(dir == 'l');
+                if(dir == 'l'){
+                    game_over();
+                    end = 1;
+                }
                 else
                     dir='r';
                 break;
@@ -155,19 +172,31 @@ void game_loop(int curr_x, int curr_y){
 
         //check current direction and move xy coordinates of snake head
         if(dir == 'l'){
-            if(curr_y == 1);//if statement detects COLSlision with border
+            if(curr_y == 1){//if statement detects COLSlision with border
+                game_over();
+                end = 1;
+            }
             else
                 curr_y--;
         }else if(dir == 'r'){
-            if(curr_y == COLS-2);//COLS - 2 is location of right of screen
+            if(curr_y == COLS-2){//COLS - 2 is location of right of screen
+                game_over();
+                end = 1;
+            }
             else
                 curr_y++;
         }else if(dir == 'u'){
-            if(curr_x == 1);
+            if(curr_x == 1){
+                game_over();
+                end = 1;
+            }
             else
                 curr_x--;
         }else{
-            if(curr_x == LINES-2);
+            if(curr_x == LINES-2){
+                game_over();
+                end = 1;
+            }
             else
                  curr_x++;
         }
@@ -253,4 +282,14 @@ void new_head(int x, int y){
 void del_tail(){
     tail = tail->next;
     tail->prev = NULL;
+}
+
+void game_over(){
+    clear();
+    refresh();
+}
+
+void win(){
+    clear();
+    refresh();
 }
