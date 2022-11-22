@@ -3,7 +3,8 @@
 #include <stdlib.h>
 
 #define INIT_LEN 5 //inital length of snake always 2 or greater
-#define SNAKE_CHAR 'O'
+#define SNAKE_CHAR 'o'
+#define HEAD_CHAR  'O'
 #define WIN_MSG "YOU WON!"
 #define LOSE_MSG "GAME OVER"
 
@@ -169,6 +170,7 @@ void game_loop(int curr_x, int curr_y){
         //delete snake head by replaceing character with a space
         mvaddch(tail->x, tail->y, ' ');
         del_tail();
+        mvaddch(head->x, head->y, SNAKE_CHAR);
 
         //check current direction and move xy coordinates of snake head
         if(dir == 'l'){
@@ -204,7 +206,7 @@ void game_loop(int curr_x, int curr_y){
         //create new head
         new_head(curr_x, curr_y);
         //redraw head in new location
-        mvaddch(head->x, head->y, SNAKE_CHAR);
+        mvaddch(head->x, head->y, HEAD_CHAR);
 
         //refresh the window to apply changes
         refresh();
@@ -253,10 +255,11 @@ void init_snake(int * curr_x, int * curr_y){
     //print the snake head by looping through the linked list
     struct snake_char * next = (struct snake_char *)malloc(sizeof(struct snake_char));
     next = tail;
-    while(next != NULL){
+    while(next->next != NULL){
         mvaddch(next->x, next->y, SNAKE_CHAR);
         next = next->next;
     }
+    mvaddch(next->x, next->y, HEAD_CHAR);
     
     refresh();//refresh snake window to apply changes
 
