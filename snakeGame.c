@@ -2,9 +2,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#define INIT_LEN 5 //inital length of snake always 2 or greater
+#define INIT_LEN 3 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'o'
 #define HEAD_CHAR  'O'
+#define FOOD_CHAR  'b'
 #define WIN_MSG "YOU WON!"
 #define LOSE_MSG "GAME OVER"
 
@@ -17,12 +18,14 @@ struct snake_char{
     struct snake_char * prev;
 };
 
-struct food {
+struct trophy {
     int X;
     int Y;
-    char symbol;
+    int new_len;
+    int loops_alive;
+    //char symbol;
 
-}food;
+};
 
 //initializes the main screen with border
 void start_screen();
@@ -45,14 +48,29 @@ void game_over();
 //draw the win screen
 void win();
 
+//DEATH
+void DeathAnimation();
+
+//collision detection 1 if collision with wall or body 2 if with food
+int DetectCollision(int new_x, int new_y);
+
+//function to place food
+void placeFood();
+
 //global head and tail of snake
 struct snake_char * head = NULL;
 struct snake_char * tail = NULL;
+struct trophy * food = NULL;
 
 int main(){
     int curr_x, curr_y;//terminal height, width, current x and y of snake head
     int ch;
     char dir = 'l'; //current direction l, r, u, or d start by going left.
+
+    food = (struct trophy *)malloc(sizeof(struct trophy));
+    food->loops_alive = -1;
+    food->X = 1;
+    food->Y = 1;
    
     //initalize the linked list for the snake body
     head = (struct snake_char *)malloc(sizeof(struct snake_char));
@@ -113,6 +131,7 @@ void game_loop(int curr_x, int curr_y){
     char dir = 'r';
     int ch;
     int end = 0;
+    int addch = 0;
     while(!end){
         //get next keystroke from input buffer
         ch = getch();
@@ -123,6 +142,7 @@ void game_loop(int curr_x, int curr_y){
                 //flush input buffer to prevent stacking keystrokes
                 flushinp();
                 //change direction dont allow reversing
+                //removing these for a function would most likely not make the code any more conscise. 
                 if(dir == 'd'){
                     game_over();
                     end = 1;
@@ -166,56 +186,60 @@ void game_loop(int curr_x, int curr_y){
         if(ch == ' '){
             break;
         }
+
+        placeFood();
         
         //delete snake head by replaceing character with a space
-        mvaddch(tail->x, tail->y, ' ');
-        del_tail();
+        if(addch <= 0){
+            mvaddch(tail->x, tail->y, ' ');
+            del_tail();
+        }else{
+            addch--;
+        }
         mvaddch(head->x, head->y, SNAKE_CHAR);
 
         //check current direction and move xy coordinates of snake head
-        if(dir == 'l'){
-            if(curr_y == 1){//if statement detects COLSlision with border
-                game_over();
-                end = 1;
-            }
-            else
+        switch(dir) {
+            case 'l':
                 curr_y--;
-        }else if(dir == 'r'){
-            if(curr_y == COLS-2){//COLS - 2 is location of right of screen
-                game_over();
-                end = 1;
-            }
-            else
+                break;
+            case 'r':
                 curr_y++;
-        }else if(dir == 'u'){
-            if(curr_x == 1){
-                game_over();
-                end = 1;
-            }
-            else
+                break;
+            case 'u':
                 curr_x--;
-        }else{
-            if(curr_x == LINES-2){
-                game_over();
-                end = 1;
-            }
-            else
-                 curr_x++;
+                break;
+            case 'd':
+                curr_x++;
+                break;
+            default:
+                break;  
         }
 
+        if(DetectCollision(curr_x, curr_y) == 1){
+            game_over();
+            end = 1;
+        }
+         if(DetectCollision(curr_x, curr_y) == 2){
+            addch = food->new_len;
+            food->loops_alive = 0;
+        }
+        
+        
         //create new head
         new_head(curr_x, curr_y);
         //redraw head in new location
         mvaddch(head->x, head->y, HEAD_CHAR);
+
 
         //refresh the window to apply changes
         refresh();
 
         //slow vertical speed to make vertical speed feel consistent with horizontal speed
         if(dir == 'u' || dir == 'd')
-            usleep(120000);
+            usleep(220000);
         else
-            usleep(100000);//wait 250ms or .25 sec
+            usleep(200000);//wait 250ms or .25 sec
         
     }
 }
@@ -270,6 +294,45 @@ void init_snake(int * curr_x, int * curr_y){
     //return scrn;
 }
 
+int DetectCollision(int new_x, int new_y) {
+    //Detect contact with boundaries
+    if( (new_x==LINES-1||new_x==0) || (new_y==COLS-1||new_y==0) )
+        return 1;
+    //Detect contact with body   
+    int char_at = mvinch(new_x, new_y) & A_CHARTEXT; 
+    if((char)char_at == SNAKE_CHAR){
+        return 1;
+    }
+    //detect food collision
+    if((head->x == food->X) && (head->y == food->Y)){
+        return 2;
+    }
+    return 0; //no collisions   
+            
+}
+
+void placeFood(){
+    if(food->loops_alive > 0){
+        food->loops_alive--;
+    }else{
+        mvaddch(food->X, food->Y, ' ');
+        int char_at = 0;
+        food->new_len=(rand()%9)+1;
+        do{
+            food->X=rand()%LINES;
+            food->Y=rand()%COLS;
+            if(food->X < 1)
+                food->X++;
+            if(food->Y < 1)
+                food->Y++;
+            int char_at = mvinch(food->X, food->Y) & A_CHARTEXT;
+        }while(((char)char_at == SNAKE_CHAR) || (char)char_at == HEAD_CHAR ); 
+        food->loops_alive = ((rand()%5) + 10)/.1;
+        mvaddch(food->X, food->Y, FOOD_CHAR);
+    }
+
+}
+
 //add a new head to the linked list
 void new_head(int x, int y){
     struct snake_char * new = (struct snake_char *)malloc(sizeof(struct snake_char));
@@ -288,6 +351,7 @@ void del_tail(){
 }
 
 void game_over(){
+    DeathAnimation();
     clear();
     refresh();
 }
@@ -295,4 +359,35 @@ void game_over(){
 void win(){
     clear();
     refresh();
+}
+
+void DeathAnimation(){
+    struct snake_char * erase = (struct snake_char *)malloc(sizeof(struct snake_char));
+    erase = head;
+    while(erase->prev != NULL) {
+        mvaddch(erase->x,erase->y,' ');
+        erase=erase->prev;
+    }
+    mvaddch(erase->x,erase->y,' ');
+   
+    for(int i=0; i<50; i++) {
+        mvaddch(head->x+i, head->y, 'o');
+        mvaddch(head->x-i, head->y, 'o');
+        mvaddch(head->x, head->y+i, 'o');
+        mvaddch(head->x, head->y-i, 'o');
+        mvaddch(head->x+i, head->y+i, 'o');
+        mvaddch(head->x-i, head->y-i, 'o');
+        mvaddch(head->x+i, head->y-i, 'o');
+        mvaddch(head->x-i, head->y+i, 'o');
+        refresh();
+        usleep(80000);
+        mvaddch(head->x+i, head->y, ' ');
+        mvaddch(head->x-i, head->y, ' ');
+        mvaddch(head->x, head->y+i, ' ');
+        mvaddch(head->x, head->y-i, ' ');
+        mvaddch(head->x+i, head->y+i, ' ');
+        mvaddch(head->x-i, head->y-i, ' ');
+        mvaddch(head->x+i, head->y-i, ' ');
+        mvaddch(head->x-i, head->y+i, ' ');       
+    }
 }
