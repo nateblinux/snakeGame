@@ -1,3 +1,7 @@
+/**
+* @author Nathan Benham, Olivia Grocki, Rich Piske
+* Snake Game for cs 355
+*/
 #include <ncurses.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -8,6 +12,29 @@
 #define FOOD_CHAR  'b'
 #define WIN_MSG "YOU WON!"
 #define LOSE_MSG "GAME OVER"
+
+//death animation
+#define BITS_CHAR  'o'
+
+struct bit {
+    int x;
+    int y;
+    int dir;
+};
+
+//Global
+struct bit bits[] = { //if you know a better way to initialize array of structs, tell me
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+};
+
+//end of death animation header
 
 //structure to allow for a linked list implementation of a queue for the snake
 struct snake_char{
@@ -48,8 +75,14 @@ void game_over();
 //draw the win screen
 void win();
 
-//DEATH
+//Death animation prototypes:
 void DeathAnimation();
+
+void advanceBits();
+
+void paintBits(char ch);
+
+void generateBits(int x, int y);
 
 //collision detection 1 if collision with wall or body 2 if with food
 int DetectCollision(int new_x, int new_y);
@@ -315,8 +348,9 @@ void placeFood(){
     if(food->loops_alive > 0){
         food->loops_alive--;
     }else{
-        mvaddch(food->X, food->Y, ' ');
-        int char_at = 0;
+        int char_at = mvinch(food->X, food->Y) & A_CHARTEXT;
+        if((char)char_at != SNAKE_CHAR || (char)char_at != HEAD_CHAR)
+            mvaddch(food->X, food->Y, ' ');
         food->new_len=(rand()%9)+1;
         do{
             food->X=rand()%LINES;
@@ -325,7 +359,7 @@ void placeFood(){
                 food->X++;
             if(food->Y < 1)
                 food->Y++;
-            int char_at = mvinch(food->X, food->Y) & A_CHARTEXT;
+            char_at = mvinch(food->X, food->Y) & A_CHARTEXT;
         }while(((char)char_at == SNAKE_CHAR) || (char)char_at == HEAD_CHAR ); 
         food->loops_alive = ((rand()%5) + 10)/.1;
         mvaddch(food->X, food->Y, FOOD_CHAR);
@@ -361,74 +395,119 @@ void win(){
     refresh();
 }
 
-//All bits bounce off of one wall.  Two walls seems even more complicated.  
-//If you have a simpler way to do this though, i'm all ears. 
-void DeathAnimation(){
- struct snake_char * erase = (struct snake_char *)malloc(sizeof(struct snake_char));
-    erase = head;
-    //erase snake from screen
-    while(erase->prev != NULL) {
-        mvaddch(erase->x,erase->y,' ');
-        erase=erase->prev;
+void generateBits(int x, int y){
+    for(int i=0; i<8; i++) {
+        bits[i].x=x;
+        bits[i].y=y;
+        bits[i].dir=i;
     }
-    mvaddch(erase->x,erase->y,' ');
-   
-    int upCount=0, downCount=0, leftCount=0, rightCount=0;
-    int upLcount=0, upRcount=0, downLcount=0, downRcount=0;    
-    for(int i=0; i<100; i++) {
-       
-        mvaddch(head->x+downCount, head->y, 'o'); //down x+
-        mvaddch(head->x-upCount, head->y, 'o');//up x-
-       
-        mvaddch(head->x, head->y+rightCount, 'o'); //right  y+
-        mvaddch(head->x, head->y-leftCount, 'o'); //left  y-
+}
 
-        mvaddch(head->x+downRcount, head->y+downRcount, 'o');//down-right x+ y+
-        mvaddch(head->x+downLcount, head->y-downLcount, 'o');//down-left x- y+
+void paintBits(char ch){
+    for(int i=0; i<8; i++) {
+        mvaddch(bits[i].x, bits[i].y, ch);
+    }
+}
 
-        mvaddch(head->x-upRcount, head->y+upRcount, 'o');//up-right x- y+
-        mvaddch(head->x-upLcount, head->y-upLcount, 'o');//up-left x- y-
-       
+void advanceBits() {
+    for(int i=0; i<8; i++) {
+        switch(bits[i].dir) {
+            case 0: //up
+                bits[i].x -= 1;
+                break;
+            case 1: //up-right
+                bits[i].x -= 1;
+                bits[i].y += 1;
+                break;
+            case 2: //right
+                bits[i].y += 1;
+                break;
+            case 3: //down-right
+                bits[i].x += 1;
+                bits[i].y += 1;
+                break;
+            case 4: //down
+                bits[i].x += 1;
+                break;
+            case 5: //down-left
+                bits[i].x += 1;
+                bits[i].y -= 1;
+                break;
+            case 6: //left
+                bits[i].y -= 1;
+                break;
+            case 7: //up-left
+                bits[i].x -= 1;
+                bits[i].y -= 1;
+                break;
+        }
+        //Collisions
+        //BOTTOM
+        if(bits[i].x>=LINES-2) {
+            switch(bits[i].dir) {
+                case 3:
+                    bits[i].dir = 1;
+                    break;
+                case 4:
+                    bits[i].dir = 0;
+                    break;
+                case 5:
+                    bits[i].dir = 7;
+                    break;
+            }
+        }//TOP
+        else if(bits[i].x<=2) {
+            switch(bits[i].dir) {
+                case 0:
+                    bits[i].dir = 4;
+                    break;
+                case 1:
+                    bits[i].dir = 3;
+                    break;
+                case 7:
+                    bits[i].dir = 5;
+                    break;
+            }
+        }
+        //RIGHT
+        if(bits[i].y>=COLS-2) {
+            switch(bits[i].dir) {
+                case 1:
+                    bits[i].dir = 7;
+                    break;
+                case 2:
+                    bits[i].dir = 6;
+                    break;
+                case 3:
+                    bits[i].dir = 5;
+                    break;
+            }
+        }//LEFT
+        else if(bits[i].y<=2) {
+            switch(bits[i].dir) {
+                case 5:
+                    bits[i].dir = 3;
+                    break;
+                case 6:
+                    bits[i].dir = 2;
+                    break;
+                case 7:
+                    bits[i].dir = 1;
+                    break;
+            }
+        }
+    }
+}
+
+void DeathAnimation(){
+
+    generateBits(head->x, head->y); //start at head of snake
+    for(int i=0; i<150; i++) {
+        paintBits(BITS_CHAR); //paint bits with BITS_CHAR
         refresh();
         usleep(100000);
-       
-        //down
-        if((head->x+i)>=LINES-2)
-            mvaddch(head->x+downCount--, head->y, ' ');//up
-        else mvaddch(head->x+downCount++, head->y, ' '); //down
-        //up
-        if((head->x-i)<=2)
-            mvaddch(head->x-upCount--, head->y, ' ');//down
-        else mvaddch(head->x-upCount++, head->y, ' ');//up
-       
-        //right
-        if((head->y+i)>=COLS-2)
-            mvaddch(head->x, head->y+rightCount--, ' ');//left
-        else mvaddch(head->x, head->y+rightCount++, ' ');//right    
-       
-        //left
-        if((head->y-i)<=2)
-            mvaddch(head->x, head->y-leftCount--, ' ');//right
-        else mvaddch(head->x, head->y-leftCount++, ' ');//left
-
-        //down-right x+ y+
-        if( (head->x+i)>=LINES-2 || (head->y+i)>=COLS-2 )
-            mvaddch(head->x+downRcount+1, head->y+downRcount--, ' ');
-        else mvaddch(head->x+downRcount-1, head->y+downRcount++, ' ');
-       
-        //down-left x- y+
-        if( (head->x+i)>=LINES-2 || (head->y-i)<=2 )
-            mvaddch(head->x+downLcount+1, head->y-downLcount--, ' ');
-        else mvaddch(head->x+downLcount-1, head->y-downLcount++, ' ');
-
-        //up-right x- y+
-        if( (head->x-i)<=2 || (head->y+i)>=COLS-2 )
-            mvaddch(head->x-upRcount-1, head->y+upRcount--, ' ');
-        else mvaddch(head->x-upRcount+1, head->y+upRcount++, ' ');
-       
-        //up-left x- y-
-        if( (head->x-i)<=2 || (head->y-i)<=2 )
-            mvaddch(head->x-upLcount-1, head->y-upLcount--, ' ');            
-        else mvaddch(head->x-upLcount+1, head->y-upLcount++, ' ');
+        paintBits(' '); //clear bits with ' '
+        advanceBits();
     }
+   
 }
