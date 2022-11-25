@@ -361,33 +361,74 @@ void win(){
     refresh();
 }
 
+//All bits bounce off of one wall.  Two walls seems even more complicated.  
+//If you have a simpler way to do this though, i'm all ears. 
 void DeathAnimation(){
-    struct snake_char * erase = (struct snake_char *)malloc(sizeof(struct snake_char));
+ struct snake_char * erase = (struct snake_char *)malloc(sizeof(struct snake_char));
     erase = head;
+    //erase snake from screen
     while(erase->prev != NULL) {
         mvaddch(erase->x,erase->y,' ');
         erase=erase->prev;
     }
     mvaddch(erase->x,erase->y,' ');
    
-    for(int i=0; i<50; i++) {
-        mvaddch(head->x+i, head->y, 'o');
-        mvaddch(head->x-i, head->y, 'o');
-        mvaddch(head->x, head->y+i, 'o');
-        mvaddch(head->x, head->y-i, 'o');
-        mvaddch(head->x+i, head->y+i, 'o');
-        mvaddch(head->x-i, head->y-i, 'o');
-        mvaddch(head->x+i, head->y-i, 'o');
-        mvaddch(head->x-i, head->y+i, 'o');
+    int upCount=0, downCount=0, leftCount=0, rightCount=0;
+    int upLcount=0, upRcount=0, downLcount=0, downRcount=0;    
+    for(int i=0; i<100; i++) {
+       
+        mvaddch(head->x+downCount, head->y, 'o'); //down x+
+        mvaddch(head->x-upCount, head->y, 'o');//up x-
+       
+        mvaddch(head->x, head->y+rightCount, 'o'); //right  y+
+        mvaddch(head->x, head->y-leftCount, 'o'); //left  y-
+
+        mvaddch(head->x+downRcount, head->y+downRcount, 'o');//down-right x+ y+
+        mvaddch(head->x+downLcount, head->y-downLcount, 'o');//down-left x- y+
+
+        mvaddch(head->x-upRcount, head->y+upRcount, 'o');//up-right x- y+
+        mvaddch(head->x-upLcount, head->y-upLcount, 'o');//up-left x- y-
+       
         refresh();
-        usleep(80000);
-        mvaddch(head->x+i, head->y, ' ');
-        mvaddch(head->x-i, head->y, ' ');
-        mvaddch(head->x, head->y+i, ' ');
-        mvaddch(head->x, head->y-i, ' ');
-        mvaddch(head->x+i, head->y+i, ' ');
-        mvaddch(head->x-i, head->y-i, ' ');
-        mvaddch(head->x+i, head->y-i, ' ');
-        mvaddch(head->x-i, head->y+i, ' ');       
+        usleep(100000);
+       
+        //down
+        if((head->x+i)>=LINES-2)
+            mvaddch(head->x+downCount--, head->y, ' ');//up
+        else mvaddch(head->x+downCount++, head->y, ' '); //down
+        //up
+        if((head->x-i)<=2)
+            mvaddch(head->x-upCount--, head->y, ' ');//down
+        else mvaddch(head->x-upCount++, head->y, ' ');//up
+       
+        //right
+        if((head->y+i)>=COLS-2)
+            mvaddch(head->x, head->y+rightCount--, ' ');//left
+        else mvaddch(head->x, head->y+rightCount++, ' ');//right    
+       
+        //left
+        if((head->y-i)<=2)
+            mvaddch(head->x, head->y-leftCount--, ' ');//right
+        else mvaddch(head->x, head->y-leftCount++, ' ');//left
+
+        //down-right x+ y+
+        if( (head->x+i)>=LINES-2 || (head->y+i)>=COLS-2 )
+            mvaddch(head->x+downRcount+1, head->y+downRcount--, ' ');
+        else mvaddch(head->x+downRcount-1, head->y+downRcount++, ' ');
+       
+        //down-left x- y+
+        if( (head->x+i)>=LINES-2 || (head->y-i)<=2 )
+            mvaddch(head->x+downLcount+1, head->y-downLcount--, ' ');
+        else mvaddch(head->x+downLcount-1, head->y-downLcount++, ' ');
+
+        //up-right x- y+
+        if( (head->x-i)<=2 || (head->y+i)>=COLS-2 )
+            mvaddch(head->x-upRcount-1, head->y+upRcount--, ' ');
+        else mvaddch(head->x-upRcount+1, head->y+upRcount++, ' ');
+       
+        //up-left x- y-
+        if( (head->x-i)<=2 || (head->y-i)<=2 )
+            mvaddch(head->x-upLcount-1, head->y-upLcount--, ' ');            
+        else mvaddch(head->x-upLcount+1, head->y-upLcount++, ' ');
     }
 }
