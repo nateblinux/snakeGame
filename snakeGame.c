@@ -5,6 +5,10 @@
 #include <ncurses.h>
 #include <unistd.h>
 #include <stdlib.h>
+<<<<<<< HEAD
+=======
+#include <string.h>
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
 
 #define INIT_LEN 3 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'o'
@@ -12,6 +16,11 @@
 #define FOOD_CHAR  'b'
 #define WIN_MSG "YOU WON!"
 #define LOSE_MSG "GAME OVER"
+<<<<<<< HEAD
+=======
+#define VERT_SPEED  220000
+#define HOR_SPEED   200000
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
 
 //death animation
 #define BITS_CHAR  'o'
@@ -23,7 +32,11 @@ struct bit {
 };
 
 //Global
+<<<<<<< HEAD
 struct bit bits[] = { //if you know a better way to initialize array of structs, tell me
+=======
+struct bit bits[] = { //initialize array of bit structs
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
             {0, 0, 0},
             {0, 0, 0},
             {0, 0, 0},
@@ -90,10 +103,23 @@ int DetectCollision(int new_x, int new_y);
 //function to place food
 void placeFood();
 
+<<<<<<< HEAD
+=======
+//Option menu, with welcome option
+void optionMenu(int);
+
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
 //global head and tail of snake
 struct snake_char * head = NULL;
 struct snake_char * tail = NULL;
 struct trophy * food = NULL;
+<<<<<<< HEAD
+=======
+int gameSpeed = 1;
+int difficulty = 1;
+int gamerScore = 0;
+int endGame = 0;
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
 
 int main(){
     int curr_x, curr_y;//terminal height, width, current x and y of snake head
@@ -122,6 +148,7 @@ int main(){
 		exit(1);
 	}
 
+<<<<<<< HEAD
     //create a COLOR pair for snake head
     start_color();
     init_pair(1, COLOR_GREEN, COLOR_GREEN);
@@ -134,6 +161,28 @@ int main(){
     init_snake(&curr_x, &curr_y);
     //get a keystroke to start
     wgetch(stdscr);
+=======
+    //don't output input to screen
+    noecho();
+    //add the keypad listener
+    keypad(stdscr, TRUE);
+
+    //create a COLOR pair for snake head
+    start_color();
+    //init_pair(1, COLOR_GREEN, COLOR_GREEN);
+
+    //draw the main screen
+    start_screen();
+    curs_set(0); //hide the cursor if allowed;
+
+    //open menu system
+    optionMenu(0); //0 because game has not begun
+
+    //create window for snake to live in sitting inside border
+    init_snake(&curr_x, &curr_y);
+    //get a keystroke to start
+    //wgetch(stdscr);
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
     //dont wait for inputs ie getch returns error if no keystroke
     nodelay(stdscr, TRUE);
 
@@ -148,21 +197,31 @@ int main(){
 
 void start_screen(){
      //COLOR pair for border
+<<<<<<< HEAD
     init_pair(2, COLOR_RED, COLOR_RED);
 
     //get the size of vthe terminal window
     noecho();
+=======
+    init_pair(2, COLOR_CYAN, COLOR_BLACK);
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
 
 
     //create border (window, left side, right side, top, bottom, corner, corner, corner, corner) and apply COLOR
     attron(COLOR_PAIR(2));
     border('|', '|', '-', '-', '+', '+', '+', '+');
+<<<<<<< HEAD
+=======
+    for(int i=1; i<COLS-1; i++) //make another border right above the bottom border (for score and status)
+        mvaddch(LINES-2, i, '-');
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
     attroff(COLOR_PAIR(2));
 }
 
 void game_loop(int curr_x, int curr_y){
     char dir = 'r';
     int ch;
+<<<<<<< HEAD
     int end = 0;
     int addch = 0;
     while(!end){
@@ -209,12 +268,46 @@ void game_loop(int curr_x, int curr_y){
                 }
                 else
                     dir='r';
+=======
+    int addch = 0;
+    while(!endGame){
+        
+        //slow vertical speed to make vertical speed feel consistent with horizontal speed
+        if(dir == 'u' || dir == 'd')
+            usleep(VERT_SPEED/gameSpeed);
+        else
+            usleep(HOR_SPEED/gameSpeed);//wait 250ms or .25 sec
+
+        //check keystroke
+        switch(getch()){
+            case KEY_UP:
+                //flush input buffer to prevent stacking keystrokes
+                flushinp();
+                dir='u';
+                break;
+            case KEY_DOWN:
+                flushinp();
+                dir='d';
+                break;
+            case KEY_LEFT:
+                flushinp();
+                dir='l';
+                break;
+            case KEY_RIGHT:
+                flushinp();
+                dir='r';
+                break;
+            case ' ':
+                optionMenu(1); //1 because we're in game
+                mvaddch(food->X, food->Y, FOOD_CHAR); //if it's behind the menu, then it disappears, so redraw
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
                 break;
             default:
                 flushinp();
                 break;
         }
 
+<<<<<<< HEAD
         //break if spacebar
         if(ch == ' '){
             break;
@@ -231,6 +324,8 @@ void game_loop(int curr_x, int curr_y){
         }
         mvaddch(head->x, head->y, SNAKE_CHAR);
 
+=======
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
         //check current direction and move xy coordinates of snake head
         switch(dir) {
             case 'l':
@@ -249,9 +344,26 @@ void game_loop(int curr_x, int curr_y){
                 break;  
         }
 
+<<<<<<< HEAD
         if(DetectCollision(curr_x, curr_y) == 1){
             game_over();
             end = 1;
+=======
+        //placeFood();
+        
+        //delete snake head by replaceing character with a space
+        if(addch <= 0){
+            mvaddch(tail->x, tail->y, ' ');
+            del_tail();
+        }else{
+            addch--;
+        }
+        mvaddch(head->x, head->y, SNAKE_CHAR);
+
+        if(DetectCollision(curr_x, curr_y) == 1){
+            game_over();
+            endGame = 1;
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
         }
          if(DetectCollision(curr_x, curr_y) == 2){
             addch = food->new_len;
@@ -264,6 +376,7 @@ void game_loop(int curr_x, int curr_y){
         //redraw head in new location
         mvaddch(head->x, head->y, HEAD_CHAR);
 
+<<<<<<< HEAD
 
         //refresh the window to apply changes
         refresh();
@@ -273,6 +386,13 @@ void game_loop(int curr_x, int curr_y){
             usleep(220000);
         else
             usleep(200000);//wait 250ms or .25 sec
+=======
+        //GAMER SCORE
+        mvprintw(LINES-1, 2, "Score: %05d", gamerScore);
+        //refresh the window to apply changes
+        placeFood();
+        refresh();
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
         
     }
 }
@@ -281,14 +401,21 @@ void init_snake(int * curr_x, int * curr_y){
 
     //create the snakepit window
     //WINDOW * scrn = newwin(LINES - 2, COLS - 2, 1,1);
+<<<<<<< HEAD
     refresh();
+=======
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
 
     //create snake COLOR pair
     init_pair(1, COLOR_GREEN, COLOR_BLACK);
 
     //initialize the x and y coordinates of snake head
     *curr_x = LINES / 2;
+<<<<<<< HEAD
     *curr_y = (COLS / 2)-5;
+=======
+    *curr_y = (COLS / 2)-INIT_LEN; //snake head dead center
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
 
     //turn on COLOR pair
     attron(COLOR_PAIR(1));
@@ -318,11 +445,14 @@ void init_snake(int * curr_x, int * curr_y){
     }
     mvaddch(next->x, next->y, HEAD_CHAR);
     
+<<<<<<< HEAD
     refresh();//refresh snake window to apply changes
 
     //add the keypad listener
     keypad(stdscr, TRUE);
 
+=======
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
     //return window with initial config
     //return scrn;
 }
@@ -338,6 +468,10 @@ int DetectCollision(int new_x, int new_y) {
     }
     //detect food collision
     if((head->x == food->X) && (head->y == food->Y)){
+<<<<<<< HEAD
+=======
+        gamerScore += food->loops_alive; //score decreases as loops_alive decreases
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
         return 2;
     }
     return 0; //no collisions   
@@ -364,6 +498,11 @@ void placeFood(){
         food->loops_alive = ((rand()%5) + 10)/.1;
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
+<<<<<<< HEAD
+=======
+    mvprintw(LINES-4, 1, "                                 ");
+    mvprintw(LINES-4, 1, "loops-alive: %d, new length: %d", food->loops_alive, food->new_len);
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
 
 }
 
@@ -395,6 +534,131 @@ void win(){
     refresh();
 }
 
+<<<<<<< HEAD
+=======
+void printMenu() {
+    init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    attron(COLOR_PAIR(3));
+    mvprintw(LINES/2-5, COLS/2-20, "****************************************");
+    mvprintw(LINES/2-4, COLS/2-20, "*           Welcome to Snake           *");
+    mvprintw(LINES/2-3, COLS/2-20, "*                                      *");
+    mvprintw(LINES/2-2, COLS/2-20, "* Options:                             *");
+    mvprintw(LINES/2-1, COLS/2-20, "*  -Speed:                             *");
+    mvprintw(LINES/2,   COLS/2-20, "*  -Difficulty:                        *");
+    mvprintw(LINES/2+1, COLS/2-20, "*                                      *");
+    mvprintw(LINES/2+2, COLS/2-20, "*                                      *");
+    mvprintw(LINES/2+3, COLS/2-20, "*                                      *");
+    mvprintw(LINES/2+4, COLS/2-20, "*                                      *");
+    mvprintw(LINES/2+5, COLS/2-20, "****************************************");
+    //attroff(COLOR_PAIR(3));
+}
+
+void printOptions(int position, int inGame) {
+    init_pair(4, COLOR_GREEN, COLOR_BLACK);
+    attron(COLOR_PAIR(4));
+    char message1[] = "Start Game!";
+    char message2[] = "Resume Game!";
+    char message[13];
+    if (inGame==1)
+        strcpy(message, message2);
+    else strcpy(message, message1);
+    switch(position) {
+        case 0:
+            mvprintw(LINES/2-1,   COLS/2, "[%d]", gameSpeed);
+            mvprintw(LINES/2, COLS/2, "[%d]", difficulty);
+            mvprintw(LINES/2+2, COLS/2-8, "%s", message);
+            attron(A_STANDOUT);
+            mvprintw(LINES/2+3, COLS/2-5, "Exit");
+            attroff(A_STANDOUT);
+            break;
+        case 1:
+            mvprintw(LINES/2-1, COLS/2, "[%d]", gameSpeed);
+            mvprintw(LINES/2,   COLS/2, "[%d]", difficulty);
+            attron(A_STANDOUT);
+            mvprintw(LINES/2+2, COLS/2-8, "%s", message);
+            attroff(A_STANDOUT);
+            mvprintw(LINES/2+3, COLS/2-5, "Exit");
+            break;
+        case 2:
+            mvprintw(LINES/2-1, COLS/2, "[%d]", gameSpeed);
+            attron(A_STANDOUT);
+            mvprintw(LINES/2,   COLS/2, "<%d>", difficulty);
+            attroff(A_STANDOUT);
+            mvprintw(LINES/2+2, COLS/2-8, "%s", message);
+            mvprintw(LINES/2+3, COLS/2-5, "Exit");
+            break;
+        case 3:
+            attron(A_STANDOUT);
+            mvprintw(LINES/2-1, COLS/2, "<%d>", gameSpeed);
+            attroff(A_STANDOUT);
+            mvprintw(LINES/2,   COLS/2, "[%d]", difficulty);
+            mvprintw(LINES/2+2, COLS/2-8, "%s", message);
+            mvprintw(LINES/2+3, COLS/2-5, "Exit");
+            break;
+    }
+    //attroff(COLOR_PAIR(4));
+
+}
+
+void clearMenu() {
+    mvprintw(LINES/2-5, COLS/2-20, "                                        ");
+    mvprintw(LINES/2-4, COLS/2-20, "                                        ");
+    mvprintw(LINES/2-3, COLS/2-20, "                                        ");
+    mvprintw(LINES/2-2, COLS/2-20, "                                        ");
+    mvprintw(LINES/2-1, COLS/2-20, "                                        ");
+    mvprintw(LINES/2,   COLS/2-20, "                                        ");
+    mvprintw(LINES/2+1, COLS/2-20, "                                        ");
+    mvprintw(LINES/2+2, COLS/2-20, "                                        ");
+    mvprintw(LINES/2+3, COLS/2-20, "                                        ");
+    mvprintw(LINES/2+4, COLS/2-20, "                                        ");
+    mvprintw(LINES/2+5, COLS/2-20, "                                        ");
+}
+
+void optionMenu(int inGame) { //inGame lets us know if the game is in progress
+    
+    int position=1, gameStart=0;
+    int ch;
+    while (!gameStart) {
+        printMenu();
+        printOptions(position, inGame);
+        ch = getch();
+        switch(ch) {
+            case '\n':
+                if(position==1)
+                    gameStart=1;
+                else if(position==0) {
+                    endGame=1;
+                    gameStart=1;
+                }
+                break;
+            case KEY_UP:
+                if(position<3)
+                    position++;
+                break;    
+            case KEY_DOWN:
+                if(position>=1)
+                    position--;    
+                break;
+            case KEY_RIGHT:
+                if(position==3 && gameSpeed<5)
+                    gameSpeed++;
+                else if(position==2 && difficulty<5)
+                    difficulty++;
+                break;
+            case KEY_LEFT:
+                if(position==3 && gameSpeed>1)
+                    gameSpeed--;
+                else if(position==2 && difficulty>1)
+                    difficulty--;
+                break;
+        }
+        refresh();
+    }
+    clearMenu();
+    
+}
+
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
 void generateBits(int x, int y){
     for(int i=0; i<8; i++) {
         bits[i].x=x;
@@ -486,8 +750,12 @@ void advanceBits() {
         else if(bits[i].y<=2) {
             switch(bits[i].dir) {
                 case 5:
+<<<<<<< HEAD
                     bits[i].dir = 3;
                     break;
+=======
+                    bits[i].dir = 3;;
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
                 case 6:
                     bits[i].dir = 2;
                     break;
@@ -500,6 +768,17 @@ void advanceBits() {
 }
 
 void DeathAnimation(){
+<<<<<<< HEAD
+=======
+    struct snake_char * erase = (struct snake_char *)malloc(sizeof(struct snake_char));
+    erase = head;
+    //erase snake from screen
+    while(erase->prev != NULL) {
+        mvaddch(erase->x,erase->y,' ');
+        erase=erase->prev;
+    }
+    mvaddch(erase->x,erase->y,' ');
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
 
     generateBits(head->x, head->y); //start at head of snake
     for(int i=0; i<150; i++) {
@@ -510,4 +789,8 @@ void DeathAnimation(){
         advanceBits();
     }
    
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 7fc567d (v2.0 - added menu system, scoring system, fixed bugs)
