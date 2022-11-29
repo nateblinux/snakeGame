@@ -249,7 +249,6 @@ void game_loop(int curr_x, int curr_y){
         mvaddch(head->x, head->y, SNAKE_CHAR);
 
         if(DetectCollision(curr_x, curr_y) == 1){
-            usleep(10000);
             game_over();
             endGame = 1;
         }
@@ -335,12 +334,14 @@ int DetectCollision(int new_x, int new_y) {
             
 }
 
-void placeFood(){
+void placeFood(int collision){
     if(food->loops_alive > 0){
         food->loops_alive--;
     }else{
         int char_at = mvinch(food->X, food->Y) & A_CHARTEXT;
-        if((char)char_at != SNAKE_CHAR || (char)char_at != HEAD_CHAR)
+        if((char)char_at == SNAKE_CHAR || (char)char_at == HEAD_CHAR)
+            mvaddch(food->X, food->Y, SNAKE_CHAR);
+        else
             mvaddch(food->X, food->Y, ' ');
         food->new_len=(rand()%9)+1;
         do{
@@ -351,7 +352,7 @@ void placeFood(){
             if(food->Y < 1)
                 food->Y++;
             char_at = mvinch(food->X, food->Y) & A_CHARTEXT;
-        }while(((char)char_at == SNAKE_CHAR) || (char)char_at == HEAD_CHAR ); 
+        }while((char)char_at != ' '); 
         food->loops_alive = ((rand()%5) + 10)/.1;
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
