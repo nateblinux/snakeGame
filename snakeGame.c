@@ -175,7 +175,7 @@ void start_screen(){
     attron(COLOR_PAIR(2));
     border('|', '|', '-', '-', '+', '+', '+', '+');
     for(int i=1; i<COLS-1; i++) //make another border right above the bottom border (for score and status)
-        mvaddch(LINES-2, i, '-');
+        mvaddch(LINES-3, i, '-');
     attroff(COLOR_PAIR(2));
 }
 
@@ -249,6 +249,7 @@ void game_loop(int curr_x, int curr_y){
         mvaddch(head->x, head->y, SNAKE_CHAR);
 
         if(DetectCollision(curr_x, curr_y) == 1){
+            usleep(10000);
             game_over();
             endGame = 1;
         }
@@ -318,7 +319,7 @@ void init_snake(int * curr_x, int * curr_y){
 
 int DetectCollision(int new_x, int new_y) {
     //Detect contact with boundaries
-    if( (new_x==LINES-1||new_x==0) || (new_y==COLS-1||new_y==0) )
+    if( (new_x==LINES-3||new_x==0) || (new_y==COLS-1||new_y==0) )
         return 1;
     //Detect contact with body   
     int char_at = mvinch(new_x, new_y) & A_CHARTEXT; 
@@ -343,7 +344,7 @@ void placeFood(){
             mvaddch(food->X, food->Y, ' ');
         food->new_len=(rand()%9)+1;
         do{
-            food->X=rand()%LINES;
+            food->X=rand()%(LINES - 4);
             food->Y=rand()%COLS;
             if(food->X < 1)
                 food->X++;
@@ -354,8 +355,8 @@ void placeFood(){
         food->loops_alive = ((rand()%5) + 10)/.1;
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
-    mvprintw(LINES-4, 1, "                                 ");
-    mvprintw(LINES-4, 1, "loops-alive: %d, new length: %d", food->loops_alive, food->new_len);
+    mvprintw(LINES-2, 1, "                                 ");
+    mvprintw(LINES-2, 1, "loops-alive: %d, new length: %d", food->loops_alive, food->new_len);
 
 }
 
