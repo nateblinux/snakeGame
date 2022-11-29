@@ -373,8 +373,11 @@ void new_head(int x, int y){
 
 //delete the tail of the linked list
 void del_tail(){
+    struct snake_char * old_tail = (struct snake_char *)malloc(sizeof(struct snake_char));
+    old_tail = tail;
     tail = tail->next;
     tail->prev = NULL;
+    free(old_tail);
 }
 
 void game_over(){
