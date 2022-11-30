@@ -189,19 +189,27 @@ void game_loop(int curr_x, int curr_y){
             case KEY_UP:
                 //flush input buffer to prevent stacking keystrokes
                 flushinp();
-                dir='u';
+                if (dir == 'u')
+                    curr_x -= 2;
+                else dir='u';
                 break;
             case KEY_DOWN:
                 flushinp();
-                dir='d';
+                if(dir == 'd')
+                    curr_x += 2;
+                else dir='d';
                 break;
             case KEY_LEFT:
                 flushinp();
+                if(dir == 'l')
+                    curr_y -= 2;
                 dir='l';
                 break;
             case KEY_RIGHT:
                 flushinp();
-                dir='r';
+                if (dir == 'r')
+                    curr_y += 2;
+                else dir='r';
                 break;
             case ' ':
                 optionMenu(1); //1 because we're in game
@@ -211,6 +219,9 @@ void game_loop(int curr_x, int curr_y){
                 flushinp();
                 break;
         }
+
+        int xDifference = curr_x-head->x;
+        int yDifference = curr_y-head->y;
 
         //check current direction and move xy coordinates of snake head
         switch(dir) {
@@ -230,7 +241,7 @@ void game_loop(int curr_x, int curr_y){
                 break;  
         }
 
-        //placeFood();
+        
         
         //delete snake head by replaceing character with a space
         if(addch <= 0){
@@ -240,12 +251,16 @@ void game_loop(int curr_x, int curr_y){
             addch--;
         }
         mvaddch(head->x, head->y, SNAKE_CHAR);
+        if(yDifference>0)
+            for(int i=1; i<=yDifference; i++) {
+                mvaddch(head->x, head->y-i, SNAKE_CHAR);
+            }
 
         if(DetectCollision(curr_x, curr_y) == 1){
             game_over();
             endGame = 1;
         }
-         if(DetectCollision(curr_x, curr_y) == 2){
+        if(DetectCollision(curr_x, curr_y) == 2){
             addch = food->new_len;
             food->loops_alive = 0;
         }
@@ -260,6 +275,8 @@ void game_loop(int curr_x, int curr_y){
         mvprintw(LINES-1, 2, "Score: %05d", gamerScore);
         //refresh the window to apply changes
         placeFood();
+        mvprintw(LINES-6, 1, "xDf = %d", xDifference);
+        mvprintw(LINES-5, 1, "yDf = %d", yDifference);
         refresh();
         
     }
@@ -374,10 +391,10 @@ void del_tail(){
     free(old_tail);
 }
 
-void printScoreMenu(int won) { //if win, won = 1, else won = 0
+void printScoreMenu(int won) { //if win, won = 1, else won = 0 MIGHT NOT NEED
     init_pair(3, COLOR_BLUE, COLOR_BLACK);
     attron(COLOR_PAIR(3));
-    mvprintw(LINES/2-6, COLS/2-15, "******************************");
+    mvprintw(LINES/2-6, COLS/2-15, "==============================");
     mvprintw(LINES/2-5, COLS/2-15, "*          GAME OVER!        *");
     mvprintw(LINES/2-4, COLS/2-15, "*                            *");
     mvprintw(LINES/2-3, COLS/2-15, "*                            *");
@@ -388,7 +405,7 @@ void printScoreMenu(int won) { //if win, won = 1, else won = 0
     mvprintw(LINES/2+2, COLS/2-15, "*            Retry           *");
     mvprintw(LINES/2+3, COLS/2-15, "*            Exit            *");
     mvprintw(LINES/2+4, COLS/2-15, "*                            *");
-    mvprintw(LINES/2+5, COLS/2-15, "******************************");
+    mvprintw(LINES/2+5, COLS/2-15, "==============================");
     //attroff(COLOR_PAIR(3));
 }
 
@@ -397,7 +414,9 @@ void printScoreOptions(int position) {
     attron(COLOR_PAIR(4));
     switch(position) {
         case 0:
+            attron(A_BLINK);
             mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
+            attroff(A_BLINK);
             attron(A_STANDOUT);
             mvprintw(LINES/2+1, COLS/2-4, "Save Score");
             attroff(A_STANDOUT);
@@ -413,9 +432,7 @@ void printScoreOptions(int position) {
             mvprintw(LINES/2+3, COLS/2-2, "Exit");
             break;
         case 2:
-            attron(A_BLINK);
             mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
-            attroff(A_BLINK);
             mvprintw(LINES/2+1, COLS/2-4, "Save Score");
             mvprintw(LINES/2+2, COLS/2-2, "Retry");
             attron(A_STANDOUT);
@@ -427,7 +444,7 @@ void printScoreOptions(int position) {
 
 void scoreMenu() {
 
-    int position=0, alive=1;;
+    int position=1, alive=1;
     int ch;
     while(alive) {
         printScoreMenu(1);
@@ -460,8 +477,6 @@ void scoreMenu() {
 }
 void game_over(){
     DeathAnimation();
-    //nodelay(stdscr, FALSE);
-    //getch();
     scoreMenu();
     clear();
     refresh();
@@ -475,7 +490,7 @@ void win(){
 void printMenu() {
     init_pair(3, COLOR_BLUE, COLOR_BLACK);
     attron(COLOR_PAIR(3));
-    mvprintw(LINES/2-5, COLS/2-20, "****************************************");
+    mvprintw(LINES/2-5, COLS/2-20, "========================================");
     mvprintw(LINES/2-4, COLS/2-20, "*           Welcome to Snake           *");
     mvprintw(LINES/2-3, COLS/2-20, "*                                      *");
     mvprintw(LINES/2-2, COLS/2-20, "* Options:                             *");
@@ -485,7 +500,7 @@ void printMenu() {
     mvprintw(LINES/2+2, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+3, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+4, COLS/2-20, "*                                      *");
-    mvprintw(LINES/2+5, COLS/2-20, "****************************************");
+    mvprintw(LINES/2+5, COLS/2-20, "========================================");
     //attroff(COLOR_PAIR(3));
 }
 
@@ -614,18 +629,18 @@ void advanceBits() {
         switch(bits[i].dir) {
             case 0: //up
                 char_at = mvinch(bits[i].x-1, bits[i].y) & A_CHARTEXT;
-                if (char_at == '-') {
+                if (char_at == '-' || char_at == '=') {
                     bits[i].dir = 4;
                     bits[i].x += 1;
                 } else bits[i].x -= 1;
                 break;
             case 1: //up-right
                 char_at = mvinch(bits[i].x-1, bits[i].y+1) & A_CHARTEXT;
-                if (char_at == '|') {
+                if (char_at == '|' || char_at == '*') {
                     bits[i].dir = 7;
                     bits[i].x -= 1;
                     bits[i].y -= 1;
-                } else if (char_at == '-') {
+                } else if (char_at == '-' || char_at == '=') {
                     bits[i].dir = 3;
                     bits[i].x += 1;
                     bits[i].y += 1;
@@ -636,18 +651,18 @@ void advanceBits() {
                 break;
             case 2: //right
                 char_at = mvinch(bits[i].x, bits[i].y+1) & A_CHARTEXT;
-                if (char_at == '|') {
+                if (char_at == '|' || char_at == '*') {
                     bits[i].dir = 6;
                     bits[i].y -= 1;
                 } else bits[i].y += 1;
                 break;
             case 3: //down-right
                 char_at = mvinch(bits[i].x+1, bits[i].y+1) & A_CHARTEXT;
-                if (char_at == '|') {
+                if (char_at == '|' || char_at == '*') {
                     bits[i].dir = 5;
                     bits[i].x += 1;
                     bits[i].y -= 1;
-                } else if (char_at == '-') {
+                } else if (char_at == '-' || char_at == '=') {
                     bits[i].dir = 1;
                     bits[i].x -= 1;
                     bits[i].y += 1;
@@ -658,18 +673,18 @@ void advanceBits() {
                 break;
             case 4: //down
                 char_at = mvinch(bits[i].x+1, bits[i].y) & A_CHARTEXT;
-                if (char_at == '-') {
+                if (char_at == '-' || char_at == '=') {
                     bits[i].dir = 0;
                     bits[i].x -= 1;
                 } else bits[i].x += 1;
                 break;
             case 5: //down-left
                 char_at = mvinch(bits[i].x+1, bits[i].y-1) & A_CHARTEXT;
-                if (char_at == '|') {
+                if (char_at == '|' || char_at == '*') {
                     bits[i].dir = 3;
                     bits[i].x += 1;
                     bits[i].y += 1;
-                } else if (char_at == '-') {
+                } else if (char_at == '-' || char_at == '=') {
                     bits[i].dir = 7;
                     bits[i].x -= 1;
                     bits[i].y -= 1;
@@ -680,18 +695,18 @@ void advanceBits() {
                 break;
             case 6: //left
                 char_at = mvinch(bits[i].x, bits[i].y-1) & A_CHARTEXT;
-                if (char_at == '|') {
+                if (char_at == '|' || char_at == '*') {
                     bits[i].dir = 2;
                     bits[i].y += 1;
                 } else bits[i].y -= 1;
                 break;
             case 7: //up-left
                 char_at = mvinch(bits[i].x-1, bits[i].y-1) & A_CHARTEXT;
-                if (char_at == '|') {
+                if (char_at == '|' || char_at == '*') {
                     bits[i].dir = 1;
                     bits[i].x -= 1;
                     bits[i].y += 1;
-                } else if (char_at == '-') {
+                } else if (char_at == '-' || char_at == '=') {
                     bits[i].dir = 5;
                     bits[i].x += 1;
                     bits[i].y -= 1;
@@ -714,13 +729,24 @@ void DeathAnimation(){
     }
     mvaddch(erase->x,erase->y,' ');
 
-    generateBits(head->x, head->y); //start at head of snake
-    for(int i=0; i<10; i++) {
+    printScoreMenu(1);
+    printScoreOptions(0);
+
+    int randomX = head->x;
+    int randomY = head->y;
+    if((head->x>=LINES/2-6 && head->x<=LINES/2+5) && (head->y>=COLS/2-15 && head->y<=COLS/2+15))
+        do {
+            randomX = rand()%LINES;
+            randomY = rand()%COLS;
+        } while ((randomX>=LINES/2-6 && randomX<=LINES/2+5) || (randomY>=COLS/2-15 && randomY<=COLS/2+15));
+    generateBits(randomX, randomY); //start at head of snake
+    //for(int i=0; i<10; i++) {
+    while(getch() != KEY_DOWN) {
         paintBits(BITS_CHAR); //paint bits with BITS_CHAR
         refresh();
         usleep(100000);
         paintBits(' '); //clear bits with ' '
         advanceBits();
     }
-   
+    clearMenu();
 }
