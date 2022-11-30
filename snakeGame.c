@@ -15,6 +15,7 @@
 #define LOSE_MSG "GAME OVER"
 #define VERT_SPEED  220000
 #define HOR_SPEED   200000
+#define JUMP_SPACES 3 // # of spaces to jump
 
 //TEST CHANGE for Git
 
@@ -176,13 +177,22 @@ void game_loop(int curr_x, int curr_y){
     char dir = 'r';
     int ch;
     int addch = 0;
+    int jump = 0;
     while(!endGame){
         
         //slow vertical speed to make vertical speed feel consistent with horizontal speed
-        if(dir == 'u' || dir == 'd')
-            usleep(VERT_SPEED/gameSpeed);
-        else
-            usleep(HOR_SPEED/gameSpeed);//wait 250ms or .25 sec
+        if(!jump){
+            if(dir == 'u' || dir == 'd')
+                usleep(VERT_SPEED/gameSpeed);
+            else
+               usleep(HOR_SPEED/gameSpeed);//wait 250ms or .25 sec
+        }else{//reduce the delay for the jump to .001 sec per loop
+            if(dir == 'u' || dir == 'd')
+                usleep((VERT_SPEED/gameSpeed) / 2200);
+            else
+               usleep((HOR_SPEED/gameSpeed) / 2000);//wait 250ms or .25 sec
+            jump--;
+        }
 
         //check keystroke
         switch(getch()){
@@ -190,25 +200,25 @@ void game_loop(int curr_x, int curr_y){
                 //flush input buffer to prevent stacking keystrokes
                 flushinp();
                 if (dir == 'u')
-                    curr_x -= 2;
+                    jump = JUMP_SPACES - 1; // correct for height difference
                 else dir='u';
                 break;
             case KEY_DOWN:
                 flushinp();
                 if(dir == 'd')
-                    curr_x += 2;
+                    jump = JUMP_SPACES - 1;
                 else dir='d';
                 break;
             case KEY_LEFT:
                 flushinp();
                 if(dir == 'l')
-                    curr_y -= 2;
+                    jump = JUMP_SPACES;
                 dir='l';
                 break;
             case KEY_RIGHT:
                 flushinp();
                 if (dir == 'r')
-                    curr_y += 2;
+                    jump = JUMP_SPACES;
                 else dir='r';
                 break;
             case ' ':
@@ -346,7 +356,7 @@ int DetectCollision(int new_x, int new_y) {
 }
 
 void placeFood(int collision){
-    if(food->loops_alive > 0){
+    if(food->loops_alive > 0){//reduce the number of loops that the food is alive
         food->loops_alive--;
     }else{
         int char_at = mvinch(food->X, food->Y) & A_CHARTEXT;
@@ -356,15 +366,15 @@ void placeFood(int collision){
             mvaddch(food->X, food->Y, ' ');
         food->new_len=(rand()%5)+1; //changed to length 5
         do{
-            food->X=rand()%(LINES - 4);
+            food->X=rand()%(LINES - 4);//fill in the food x and y with random places on screen
             food->Y=rand()%COLS;
-            if(food->X < 1)
+            if(food->X < 1)//make sure that x and y are on the screen
                 food->X++;
             if(food->Y < 1)
                 food->Y++;
             char_at = mvinch(food->X, food->Y) & A_CHARTEXT;
-        }while((char)char_at != ' '); 
-        food->loops_alive = ((rand()%5) + 10)/.1;
+        }while((char)char_at != ' '); //make sure food does not generate inside the snake
+        food->loops_alive = ((rand()%3) + 9)/(.22 / gameSpeed);// random value from 3 to 9 seconds in loops
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
     mvprintw(LINES-2, 1, "                                 ");
