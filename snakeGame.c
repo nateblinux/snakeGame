@@ -107,6 +107,7 @@ int gameSpeed = 1;
 int difficulty = 1;
 int gamerScore = 0;
 int endGame = 0;
+int snake_len = 3;
 //int continueGame=0;
 //WINDOW *score_win; //we're not doing windows.
 
@@ -274,6 +275,7 @@ void game_loop(int curr_x, int curr_y){
         }
         if(DetectCollision(curr_x, curr_y) == 2){
             addch = food->new_len;
+            snake_len += addch;
             food->loops_alive = 0;
         }
         
@@ -379,7 +381,7 @@ void placeFood(int collision){
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
     mvprintw(LINES-2, 1, "                                 ");
-    mvprintw(LINES-2, 1, "loops-alive: %d, new length: %d", food->loops_alive, food->new_len);
+    mvprintw(LINES-2, 1, "loops-alive: %d, new length: %d snake length: %d", food->loops_alive, food->new_len, snake_len);
 
 }
 
