@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define INIT_LEN 3 //inital length of snake always 2 or greater
+#define INIT_LEN 25 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'o'
 #define HEAD_CHAR  'O'
 #define FOOD_CHAR  'b'
@@ -251,11 +251,12 @@ void game_loop(int curr_x, int curr_y){
             addch--;
         }
         mvaddch(head->x, head->y, SNAKE_CHAR);
-        if(yDifference>0)
+        //trying to add jumped body sections from turbo boost
+        /*if(yDifference>0)
             for(int i=1; i<=yDifference; i++) {
                 mvaddch(head->x, head->y-i, SNAKE_CHAR);
             }
-
+        */
         if(DetectCollision(curr_x, curr_y) == 1){
             game_over();
             endGame = 1;
@@ -275,8 +276,8 @@ void game_loop(int curr_x, int curr_y){
         mvprintw(LINES-1, 2, "Score: %05d", gamerScore);
         //refresh the window to apply changes
         placeFood();
-        mvprintw(LINES-6, 1, "xDf = %d", xDifference);
-        mvprintw(LINES-5, 1, "yDf = %d", yDifference);
+        //mvprintw(LINES-6, 1, "xDf = %d", xDifference);
+        //mvprintw(LINES-5, 1, "yDf = %d", yDifference);
         refresh();
         
     }
@@ -295,7 +296,7 @@ void init_snake(int * curr_x, int * curr_y){
     *curr_y = (COLS / 2)-INIT_LEN; //snake head dead center
 
     //turn on COLOR pair
-    attron(COLOR_PAIR(1));
+    //attron(COLOR_PAIR(1));
 
 
     //initialize head and tail of snake
@@ -618,7 +619,11 @@ void generateBits(int x, int y){
 }
 
 void paintBits(char ch){
+    init_pair(0, COLOR_RED, COLOR_BLACK);
+    init_pair(1, COLOR_YELLOW, COLOR_BLACK);
+    //attron(COLOR_PAIR(5));
     for(int i=0; i<8; i++) {
+        attron(COLOR_PAIR(i%2));
         mvaddch(bits[i].x, bits[i].y, ch);
     }
 }
@@ -721,8 +726,39 @@ void advanceBits() {
 
 void DeathAnimation(){
     struct snake_char * erase = (struct snake_char *)malloc(sizeof(struct snake_char));
-    erase = head;
+    init_pair(5, COLOR_RED, COLOR_BLACK);
+    init_pair(6, COLOR_YELLOW, COLOR_BLACK);
+    
+    //RED AND YELLOW FLASHING BEFORE DEATH
+    for(int i=0; i<2; i++) {
+        
+        erase = head;
+        attron(COLOR_PAIR(5));
+        mvaddch(erase->x, erase->y, HEAD_CHAR);
+        erase=erase->prev;
+        while(erase->prev != NULL) {
+            mvaddch(erase->x, erase->y, SNAKE_CHAR);
+            erase=erase->prev;
+        }
+        mvaddch(erase->x,erase->y,SNAKE_CHAR);
+        refresh();
+        usleep(140000);
+
+        erase = head;
+        attron(COLOR_PAIR(6));
+        mvaddch(erase->x, erase->y, HEAD_CHAR);
+        erase=erase->prev;
+        while(erase->prev != NULL) {
+            mvaddch(erase->x, erase->y, SNAKE_CHAR);
+            erase=erase->prev;
+        }
+        mvaddch(erase->x,erase->y, SNAKE_CHAR);
+        refresh();
+        usleep(140000);
+    }
+    
     //erase snake from screen
+    erase = head;
     while(erase->prev != NULL) {
         mvaddch(erase->x,erase->y,' ');
         erase=erase->prev;
@@ -744,7 +780,7 @@ void DeathAnimation(){
     while(getch() != KEY_DOWN) {
         paintBits(BITS_CHAR); //paint bits with BITS_CHAR
         refresh();
-        usleep(100000);
+        usleep(50000);
         paintBits(' '); //clear bits with ' '
         advanceBits();
     }
