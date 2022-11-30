@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define INIT_LEN 25 //inital length of snake always 2 or greater
+#define INIT_LEN 15 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'o'
 #define HEAD_CHAR  'O'
 #define FOOD_CHAR  'b'
@@ -102,8 +102,8 @@ void optionMenu(int);
 struct snake_char * head = NULL;
 struct snake_char * tail = NULL;
 struct trophy * food = NULL;
-int gameSpeed = 1;
-int difficulty = 1;
+int gameSpeed = 3; //initial speed
+int difficulty = 1; //intiial difficulty
 int gamerScore = 0;
 int endGame = 0;
 //int continueGame=0;
@@ -392,7 +392,7 @@ void del_tail(){
     free(old_tail);
 }
 
-void printScoreMenu(int won) { //if win, won = 1, else won = 0 MIGHT NOT NEED
+void printScoreMenu(int won) { //won = 0: end of game, won=1: next level
     init_pair(3, COLOR_BLUE, COLOR_BLACK);
     attron(COLOR_PAIR(3));
     mvprintw(LINES/2-6, COLS/2-15, "==============================");
@@ -457,6 +457,7 @@ void scoreMenu() {
                     //saveScore();
                 else if(position==1) {
                     clear(); //clear the screen
+                    gamerScore=0; //reset progress
                     main(); //start at the top
                     alive=0;
                 }
@@ -623,7 +624,7 @@ void paintBits(char ch){
     init_pair(1, COLOR_YELLOW, COLOR_BLACK);
     //attron(COLOR_PAIR(5));
     for(int i=0; i<8; i++) {
-        attron(COLOR_PAIR(i%2));
+        attron(COLOR_PAIR(i%2)); //alternate 0 and 1
         mvaddch(bits[i].x, bits[i].y, ch);
     }
 }
@@ -769,7 +770,17 @@ void DeathAnimation(){
     printScoreOptions(0);
 
     int randomX = head->x;
+    if(randomX>=LINES-4)
+        randomX -= 1;
+    else if (randomX<=1)
+        randomX += 1;
+
     int randomY = head->y;
+    if(randomY>=COLS-2)
+        randomY -= 1;
+    else if (randomY<=1)
+        randomY += 1;
+
     if((head->x>=LINES/2-6 && head->x<=LINES/2+5) && (head->y>=COLS/2-15 && head->y<=COLS/2+15))
         do {
             randomX = rand()%LINES;
