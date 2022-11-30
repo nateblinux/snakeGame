@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define INIT_LEN 25 //inital length of snake always 2 or greater
+#define INIT_LEN 3 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'o'
 #define HEAD_CHAR  'O'
 #define FOOD_CHAR  'b'
@@ -192,6 +192,7 @@ void game_loop(int curr_x, int curr_y){
             else
                usleep((HOR_SPEED/gameSpeed) / 2000);//wait 250ms or .25 sec
             jump--;
+            food -> loops_alive++; //dont reduce loops alive for food
         }
 
         //check keystroke
