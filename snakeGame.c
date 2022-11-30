@@ -106,6 +106,8 @@ int gameSpeed = 1;
 int difficulty = 1;
 int gamerScore = 0;
 int endGame = 0;
+//int continueGame=0;
+//WINDOW *score_win; //we're not doing windows.
 
 int main(){
     int curr_x, curr_y;//terminal height, width, current x and y of snake head
@@ -134,35 +136,26 @@ int main(){
 		exit(1);
 	}
 
-    //don't output input to screen
-    noecho();
-    //add the keypad listener
-    keypad(stdscr, TRUE);
-
-    //create a COLOR pair for snake head
-    start_color();
-    //init_pair(1, COLOR_GREEN, COLOR_GREEN);
-
+    //set up intials
+    noecho(); //don't output input to screen
+    keypad(stdscr, TRUE); //add the keypad listener
+    nodelay(stdscr, TRUE);
+    curs_set(0); //hide the cursor if allowed;
+    start_color(); //start colors
+    
     //draw the main screen
     start_screen();
-    curs_set(0); //hide the cursor if allowed;
 
     //open menu system
     optionMenu(0); //0 because game has not begun
 
     //create window for snake to live in sitting inside border
     init_snake(&curr_x, &curr_y);
-    //get a keystroke to start
-    //wgetch(stdscr);
-    //dont wait for inputs ie getch returns error if no keystroke
-    nodelay(stdscr, TRUE);
-
-
     //main game loop
     game_loop(curr_x, curr_y);
-    //turn off COLORs and end curses
-    attroff(COLOR_PAIR(1));
-    endwin();
+    
+    attroff(COLOR_PAIR(1)); //turn off COLORs 
+    endwin(); //end curses
     return 0;
 }
 
@@ -343,7 +336,7 @@ void placeFood(int collision){
             mvaddch(food->X, food->Y, SNAKE_CHAR);
         else
             mvaddch(food->X, food->Y, ' ');
-        food->new_len=(rand()%9)+1;
+        food->new_len=(rand()%5)+1; //changed to length 5
         do{
             food->X=rand()%(LINES - 4);
             food->Y=rand()%COLS;
@@ -381,8 +374,95 @@ void del_tail(){
     free(old_tail);
 }
 
+void printScoreMenu(int won) { //if win, won = 1, else won = 0
+    init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    attron(COLOR_PAIR(3));
+    mvprintw(LINES/2-6, COLS/2-15, "******************************");
+    mvprintw(LINES/2-5, COLS/2-15, "*          GAME OVER!        *");
+    mvprintw(LINES/2-4, COLS/2-15, "*                            *");
+    mvprintw(LINES/2-3, COLS/2-15, "*                            *");
+    mvprintw(LINES/2-2, COLS/2-15, "*                            *");
+    mvprintw(LINES/2-1, COLS/2-15, "*  Your score:               *");
+    mvprintw(LINES/2,   COLS/2-15, "*                            *");
+    mvprintw(LINES/2+1, COLS/2-15, "*          Save Score        *");
+    mvprintw(LINES/2+2, COLS/2-15, "*            Retry           *");
+    mvprintw(LINES/2+3, COLS/2-15, "*            Exit            *");
+    mvprintw(LINES/2+4, COLS/2-15, "*                            *");
+    mvprintw(LINES/2+5, COLS/2-15, "******************************");
+    //attroff(COLOR_PAIR(3));
+}
+
+void printScoreOptions(int position) {
+    //init_pair(4, COLOR_GREEN, COLOR_BLACK); //is this global?
+    attron(COLOR_PAIR(4));
+    switch(position) {
+        case 0:
+            mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
+            attron(A_STANDOUT);
+            mvprintw(LINES/2+1, COLS/2-4, "Save Score");
+            attroff(A_STANDOUT);
+            mvprintw(LINES/2+2, COLS/2-2, "Retry");
+            mvprintw(LINES/2+3, COLS/2-2, "Exit");
+            break;
+        case 1:
+            mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
+            mvprintw(LINES/2+1, COLS/2-4, "Save Score");
+            attron(A_STANDOUT);
+            mvprintw(LINES/2+2, COLS/2-2, "Retry");
+            attroff(A_STANDOUT);
+            mvprintw(LINES/2+3, COLS/2-2, "Exit");
+            break;
+        case 2:
+            attron(A_BLINK);
+            mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
+            attroff(A_BLINK);
+            mvprintw(LINES/2+1, COLS/2-4, "Save Score");
+            mvprintw(LINES/2+2, COLS/2-2, "Retry");
+            attron(A_STANDOUT);
+            mvprintw(LINES/2+3, COLS/2-2, "Exit");
+            attroff(A_STANDOUT);
+            break;
+    }
+}
+
+void scoreMenu() {
+
+    int position=0, alive=1;;
+    int ch;
+    while(alive) {
+        printScoreMenu(1);
+        printScoreOptions(position);
+        ch = getch();
+        switch(ch) {
+            case '\n':
+                if(position==0);
+                    //saveScore();
+                else if(position==1) {
+                    clear(); //clear the screen
+                    main(); //start at the top
+                    alive=0;
+                }
+                else {
+                    endGame=1;
+                    alive=0;
+                }
+            case KEY_UP:
+                if(position>0)
+                    position--;
+                break;
+            case KEY_DOWN:
+                if(position<2)
+                    position++;
+        }
+        refresh();
+    }
+    //clearMenu();
+}
 void game_over(){
     DeathAnimation();
+    //nodelay(stdscr, FALSE);
+    //getch();
+    scoreMenu();
     clear();
     refresh();
 }
@@ -529,90 +609,97 @@ void paintBits(char ch){
 }
 
 void advanceBits() {
+    int char_at;
     for(int i=0; i<8; i++) {
         switch(bits[i].dir) {
             case 0: //up
-                bits[i].x -= 1;
+                char_at = mvinch(bits[i].x-1, bits[i].y) & A_CHARTEXT;
+                if (char_at == '-') {
+                    bits[i].dir = 4;
+                    bits[i].x += 1;
+                } else bits[i].x -= 1;
                 break;
             case 1: //up-right
-                bits[i].x -= 1;
-                bits[i].y += 1;
+                char_at = mvinch(bits[i].x-1, bits[i].y+1) & A_CHARTEXT;
+                if (char_at == '|') {
+                    bits[i].dir = 7;
+                    bits[i].x -= 1;
+                    bits[i].y -= 1;
+                } else if (char_at == '-') {
+                    bits[i].dir = 3;
+                    bits[i].x += 1;
+                    bits[i].y += 1;
+                } else {
+                    bits[i].x -= 1;
+                    bits[i].y += 1;
+                }
                 break;
             case 2: //right
-                bits[i].y += 1;
+                char_at = mvinch(bits[i].x, bits[i].y+1) & A_CHARTEXT;
+                if (char_at == '|') {
+                    bits[i].dir = 6;
+                    bits[i].y -= 1;
+                } else bits[i].y += 1;
                 break;
             case 3: //down-right
-                bits[i].x += 1;
-                bits[i].y += 1;
+                char_at = mvinch(bits[i].x+1, bits[i].y+1) & A_CHARTEXT;
+                if (char_at == '|') {
+                    bits[i].dir = 5;
+                    bits[i].x += 1;
+                    bits[i].y -= 1;
+                } else if (char_at == '-') {
+                    bits[i].dir = 1;
+                    bits[i].x -= 1;
+                    bits[i].y += 1;
+                } else {
+                    bits[i].x += 1;
+                    bits[i].y += 1;
+                }
                 break;
             case 4: //down
-                bits[i].x += 1;
+                char_at = mvinch(bits[i].x+1, bits[i].y) & A_CHARTEXT;
+                if (char_at == '-') {
+                    bits[i].dir = 0;
+                    bits[i].x -= 1;
+                } else bits[i].x += 1;
                 break;
             case 5: //down-left
-                bits[i].x += 1;
-                bits[i].y -= 1;
+                char_at = mvinch(bits[i].x+1, bits[i].y-1) & A_CHARTEXT;
+                if (char_at == '|') {
+                    bits[i].dir = 3;
+                    bits[i].x += 1;
+                    bits[i].y += 1;
+                } else if (char_at == '-') {
+                    bits[i].dir = 7;
+                    bits[i].x -= 1;
+                    bits[i].y -= 1;
+                } else {
+                    bits[i].x += 1;
+                    bits[i].y -= 1;
+                }
                 break;
             case 6: //left
-                bits[i].y -= 1;
+                char_at = mvinch(bits[i].x, bits[i].y-1) & A_CHARTEXT;
+                if (char_at == '|') {
+                    bits[i].dir = 2;
+                    bits[i].y += 1;
+                } else bits[i].y -= 1;
                 break;
             case 7: //up-left
-                bits[i].x -= 1;
-                bits[i].y -= 1;
+                char_at = mvinch(bits[i].x-1, bits[i].y-1) & A_CHARTEXT;
+                if (char_at == '|') {
+                    bits[i].dir = 1;
+                    bits[i].x -= 1;
+                    bits[i].y += 1;
+                } else if (char_at == '-') {
+                    bits[i].dir = 5;
+                    bits[i].x += 1;
+                    bits[i].y -= 1;
+                } else {
+                    bits[i].x -= 1;
+                    bits[i].y -= 1;
+                }
                 break;
-        }
-        //Collisions
-        //BOTTOM
-        if(bits[i].x>=LINES-2) {
-            switch(bits[i].dir) {
-                case 3:
-                    bits[i].dir = 1;
-                    break;
-                case 4:
-                    bits[i].dir = 0;
-                    break;
-                case 5:
-                    bits[i].dir = 7;
-                    break;
-            }
-        }//TOP
-        else if(bits[i].x<=2) {
-            switch(bits[i].dir) {
-                case 0:
-                    bits[i].dir = 4;
-                    break;
-                case 1:
-                    bits[i].dir = 3;
-                    break;
-                case 7:
-                    bits[i].dir = 5;
-                    break;
-            }
-        }
-        //RIGHT
-        if(bits[i].y>=COLS-2) {
-            switch(bits[i].dir) {
-                case 1:
-                    bits[i].dir = 7;
-                    break;
-                case 2:
-                    bits[i].dir = 6;
-                    break;
-                case 3:
-                    bits[i].dir = 5;
-                    break;
-            }
-        }//LEFT
-        else if(bits[i].y<=2) {
-            switch(bits[i].dir) {
-                case 5:
-                    bits[i].dir = 3;;
-                case 6:
-                    bits[i].dir = 2;
-                    break;
-                case 7:
-                    bits[i].dir = 1;
-                    break;
-            }
         }
     }
 }
@@ -628,7 +715,7 @@ void DeathAnimation(){
     mvaddch(erase->x,erase->y,' ');
 
     generateBits(head->x, head->y); //start at head of snake
-    for(int i=0; i<150; i++) {
+    for(int i=0; i<10; i++) {
         paintBits(BITS_CHAR); //paint bits with BITS_CHAR
         refresh();
         usleep(100000);
