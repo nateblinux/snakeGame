@@ -62,6 +62,25 @@ struct trophy {
 
 };
 
+
+//==========================
+//FILE HANDLING
+//==========================
+
+struct hiScore {
+    char *name;
+    int score;
+    int length;
+};
+
+struct hiScore hiScoreArray[] = {
+    {NULL, 0, 0},
+    {NULL, 0, 0},
+    {NULL, 0, 0},
+    {NULL, 0, 0},
+    {NULL, 0, 0}
+};
+
 //initializes the main screen with border
 void start_screen();
 
@@ -125,24 +144,6 @@ char highScoreData[255];
 
 //int continueGame=0;
 //WINDOW *score_win; //we're not doing windows.
-
-//==========================
-//FILE HANDLING
-//==========================
-
-struct hiScore {
-    char *name;
-    int score;
-    int length;
-};
-
-struct hiScore hiScoreArray[] = {
-    {NULL, 0, 0},
-    {NULL, 0, 0},
-    {NULL, 0, 0},
-    {NULL, 0, 0},
-    {NULL, 0, 0}
-};
 
 int main(){
     srand ( time(NULL) );//seed rand with current time to prevent same sequence of numbers
