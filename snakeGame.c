@@ -469,7 +469,6 @@ void placeFood(int collision){
         food->loops_alive = ((rand()%3) + 9)/(.22 / gameSpeed);// random value from 3 to 9 seconds in loops
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
-<<<<<<< HEAD
     mvprintw(LINES-2, 1, "                                 ");
     mvprintw(LINES-2, 1, "loops-alive: %d, boost: %d snake length: %d", food->loops_alive, boost, snake_len);
 
@@ -512,6 +511,7 @@ void clearMenu() {
     mvprintw(LINES/2+6, COLS/2-20, "                                        ");
     mvprintw(LINES/2+7, COLS/2-20, "                                        ");
 }
+
 
 
 //=================================
@@ -621,6 +621,7 @@ void printScoreMenu(int won) { //won = 0: end of game, won=1: next level
     //attroff(COLOR_PAIR(3));
 }
 
+
 void printScoreOptions(int position) {
     //init_pair(4, COLOR_GREEN, COLOR_BLACK); //is this global?
     attron(COLOR_PAIR(4));
@@ -669,7 +670,6 @@ void scoreMenu() {
                 else if(position==1) {
                     clear(); //clear the screen
                     gamerScore=0; //reset progress
-<<<<<<< HEAD
                     snake_len = INIT_LEN;//reset snake length
                     main(); //start at the top
                     alive=0;
@@ -768,20 +768,6 @@ void printOptions(int position, int inGame) {
     }
     //attroff(COLOR_PAIR(4));
 
-}
-
-void clearMenu() {
-    mvprintw(LINES/2-5, COLS/2-20, "                                        ");
-    mvprintw(LINES/2-4, COLS/2-20, "                                        ");
-    mvprintw(LINES/2-3, COLS/2-20, "                                        ");
-    mvprintw(LINES/2-2, COLS/2-20, "                                        ");
-    mvprintw(LINES/2-1, COLS/2-20, "                                        ");
-    mvprintw(LINES/2,   COLS/2-20, "                                        ");
-    mvprintw(LINES/2+1, COLS/2-20, "                                        ");
-    mvprintw(LINES/2+2, COLS/2-20, "                                        ");
-    mvprintw(LINES/2+3, COLS/2-20, "                                        ");
-    mvprintw(LINES/2+4, COLS/2-20, "                                        ");
-    mvprintw(LINES/2+5, COLS/2-20, "                                        ");
 }
 
 void optionMenu(int inGame) { //inGame lets us know if the game is in progress
