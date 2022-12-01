@@ -15,7 +15,7 @@
 #define VERT_SPEED  220000
 #define HOR_SPEED   200000
 #define JUMP_SPACES 3 // # of spaces to jump
-#define MAX_BOOST 5 // number of boosts allowed to be collected
+#define BOOST_DIV 400 // number to devide area of screen by for max boosts
 
 //TEST CHANGE for Git
 
@@ -126,6 +126,9 @@ void sortHighScores();
 void resetHighScoreArray();
 //end high score menu
 
+//randomly place walls based on difficulty
+void placeWalls(int difficulty);
+
 
 //global head and tail of snake
 struct snake_char * head = NULL;
@@ -136,7 +139,7 @@ int difficulty = 1; //intiial difficulty
 int gamerScore = 0;
 int endGame = 0;
 int snake_len;
-int boost = MAX_BOOST;//inital boosts start at max
+int boost;
 int numHighScoreRecords = 0;
 char highScoreData[255];
 
@@ -163,6 +166,7 @@ int main(){
     tail->prev = NULL;
 
     initscr(); //start curses screen
+    boost = (LINES * COLS) / BOOST_DIV;
 
     //check if terminal supports COLORs
     if(has_colors() == FALSE)
@@ -314,7 +318,7 @@ void game_loop(int curr_x, int curr_y){
             addch = food->new_len;
             snake_len += food->new_len;
             food->loops_alive = 0;
-            if(boost < MAX_BOOST){ //cap the number of boosts able to be collected
+            if(boost < (LINES * COLS) / BOOST_DIV){ //cap the number of boosts able to be collected
                 boost+=1;
             }
         }
@@ -346,7 +350,7 @@ void init_snake(int * curr_x, int * curr_y){
 
     //initialize the x and y coordinates of snake head
     *curr_x = LINES / 2;
-    *curr_y = (COLS / 2)-INIT_LEN; //snake head dead center
+    *curr_y = ((COLS / 2)-INIT_LEN) - 10; //snake head dead center shifted 10 for levels
 
     //turn on COLOR pair
     //attron(COLOR_PAIR(1));
@@ -384,15 +388,15 @@ int DetectCollision(int new_x, int new_y) {
     //Detect contact with boundaries
     if( (new_x==LINES-3||new_x==0) || (new_y==COLS-1||new_y==0) )
         return 1;
-    //Detect contact with body   
-    int char_at = mvinch(new_x, new_y) & A_CHARTEXT; 
-    if((char)char_at == SNAKE_CHAR){
-        return 1;
-    }
+
     //detect food collision
     if((head->x == food->X) && (head->y == food->Y)){
         gamerScore += food->loops_alive; //score decreases as loops_alive decreases
         return 2;
+    }
+    int char_at = mvinch(new_x, new_y) & A_CHARTEXT; 
+    if((char)char_at != FOOD_CHAR && (char)char_at != ' '){
+        return 1;
     }
     return 0; //no collisions   
             
@@ -766,6 +770,7 @@ void optionMenu(int inGame) { //inGame lets us know if the game is in progress
         refresh();
     }
     clearMenu();
+    placeWalls(difficulty);
     
 }
 
@@ -1032,5 +1037,14 @@ void resetHighScoreArray() {
         hiScoreArray[i].name = '\0';
         hiScoreArray[i].score = 0;
         hiScoreArray[i].length = 0;
+    }
+}
+
+void placeWalls(int difficulty){
+    if(difficulty == 2){
+        for(int i = (LINES / 3); i < (2*(LINES / 3)); i++){
+            mvaddch(i, COLS/2, '|');
+        }
+        refresh();
     }
 }
