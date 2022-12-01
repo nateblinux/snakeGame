@@ -388,10 +388,6 @@ void init_snake(int * curr_x, int * curr_y){
 }
 
 int DetectCollision(int new_x, int new_y) {
-    //Detect contact with boundaries
-    if( (new_x==LINES-3||new_x==0) || (new_y==COLS-1||new_y==0) )
-        return 1;
-
     //detect food collision
     if((head->x == food->X) && (head->y == food->Y)){
         gamerScore += food->loops_alive; //score decreases as loops_alive decreases
