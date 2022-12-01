@@ -197,6 +197,14 @@ void sortHighScores() {
             }
 }
 
+void resetHighScoreArray() {
+    for(int i=0; i<numHighScoreRecords; i++) {
+        hiScoreArray[i].name = '\0';
+        hiScoreArray[i].score = 0;
+        hiScoreArray[i].length = 0;
+    }
+}
+
 int main(){
     srand ( time(NULL) );//seed rand with current time to prevent same sequence of numbers
     int curr_x, curr_y;//terminal height, width, current x and y of snake head
@@ -677,10 +685,14 @@ void scoreMenu() {
                     highScoreMenu(0); //1: enter name mode
                 else if(position==1) {
                     clear(); //clear the screen
-                    gamerScore=0; //reset progress
-                    snake_len = INIT_LEN;//reset snake length
+                    //reset all Globals
+                        gamerScore=0; //reset progress
+                        boost = 5;
+                        resetHighScoreArray();
+                        numHighScoreRecords = 0;
+                        snake_len = INIT_LEN;//reset snake length
                     main(); //start at the top
-                    alive=0;
+                    alive=0; //pointless?
                 }
                 else {
                     endGame=1;
