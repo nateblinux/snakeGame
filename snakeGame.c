@@ -111,6 +111,7 @@ int endGame = 0;
 int snake_len = INIT_LEN;
 int boost = 5;//inital boosts
 int numHighScoreRecords = 0;
+char highScoreData[255];
 
 //int continueGame=0;
 //WINDOW *score_win; //we're not doing windows.
@@ -135,15 +136,6 @@ struct hiScore hiScoreArray[] = {
 
 void importHighScores() {
 
-    char highScoreData[255];
-    struct hiScore hiScoreTemp[] = {
-        {NULL, 0, 0},
-        {NULL, 0, 0},
-        {NULL, 0, 0},
-        {NULL, 0, 0},
-        {NULL, 0, 0}
-    };
-
     FILE *fp;
     char ch;
     int i = 0;
@@ -151,11 +143,6 @@ void importHighScores() {
         while( (ch = getc(fp)) != EOF ) {
             highScoreData[i++] = ch;
         }
-        //print highScoreData (TESTING)
-        /*for(int i=0; i<strlen(highScoreData); i++)
-            mvprintw(LINES-15, i+1, "%c", highScoreData[i]);
-        refresh();
-        usleep(500000);*/
     
         fclose(fp);
 
@@ -167,10 +154,13 @@ void importHighScores() {
             switch(count%3) {
                 case 0:
                     hiScoreArray[numHighScoreRecords].name = token;
+                    break;
                 case 1:
                     hiScoreArray[numHighScoreRecords].score = atoi(token);
+                    break;
                 case 2:
                     hiScoreArray[numHighScoreRecords].length = atoi(token);
+                    break;
             }
             count++;
             if(count%3==0)
@@ -180,10 +170,31 @@ void importHighScores() {
     } //else fp = fopen("highscores.txt", "w"); //maybe create file at end?
 
     //print hiScoreArray (TESTING) sizeof(hiScoreArray)/sizeof(hiScoreArray[0])
-    for (int i=0; i<numHighScoreRecords; i++)
+    /*for (int i=0; i<numHighScoreRecords; i++)
         //if(hiScoreArray[i].name != " ")
-            mvprintw((LINES-10)-(i+5), 2, "name: %s, score: %d, length: %d", 
-                hiScoreArray[i].name, hiScoreArray[i].score, hiScoreArray[i].length);
+            mvprintw((LINES-10)-(i+5), 2, "name: %s, score: %d, length: %d, index: %d", 
+                hiScoreArray[i].name, hiScoreArray[i].score, hiScoreArray[i].length, i);*/
+}
+
+void sortHighScores() {
+    char *temp_name;
+    int temp_score, temp_length;
+    for(int i=0; i<numHighScoreRecords; i++)
+        for(int j=i+1; j<numHighScoreRecords; j++)
+            if(hiScoreArray[i].score<hiScoreArray[j].score) {
+                //swap name
+                temp_name = hiScoreArray[i].name;
+                hiScoreArray[i].name = hiScoreArray[j].name;
+                hiScoreArray[j].name = temp_name;
+                //swap score
+                temp_score = hiScoreArray[i].score;
+                hiScoreArray[i].score = hiScoreArray[j].score;
+                hiScoreArray[j].score = temp_score;
+                //swap length
+                temp_length = hiScoreArray[i].length;
+                hiScoreArray[i].length = hiScoreArray[j].length;
+                hiScoreArray[j].length = temp_length;
+            }
 }
 
 int main(){
@@ -229,14 +240,10 @@ int main(){
 
     //create window for snake to live in sitting inside border
     init_snake(&curr_x, &curr_y);
-    //main game loop
+    //Get high scores from highscores.txt
     importHighScores();
-
-    //WHY IS hiScoreArray CORRUPTED WHEN IT GETS HERE???
-    for (int i=0; i<numHighScoreRecords; i++)
-            //if(hiScoreArray[i].name != " ")
-                mvprintw((LINES-10)+i, 2, "name: %s, score: %d, length: %d", 
-                    hiScoreArray[i].name, hiScoreArray[i].score, hiScoreArray[i].length);
+    sortHighScores();
+    //main game loop
     game_loop(curr_x, curr_y);
     
     attroff(COLOR_PAIR(1)); //turn off COLORs 
@@ -550,10 +557,11 @@ void printHighScoreOptions(int position, int enterName) {
     switch(position) {
         case 0:
             attron(A_BOLD); //this will be a loop to loop through records
+            int offset = -1;
             for(int i=0; i<numHighScoreRecords; i++) {
-                    mvprintw(LINES/2, COLS/2-15, "%s", hiScoreArray[i].name); //FILE->NAME1
-                    mvprintw(LINES/2-(i-1), COLS/2-3, "%05d", hiScoreArray[i].score); //FILE->SCORE1
-                    mvprintw(LINES/2-(i-1), COLS/2+11, "%03d", hiScoreArray[i].length); //FILE->LENGTH1   
+                    mvprintw(LINES/2+offset, COLS/2-15, "%s", hiScoreArray[i].name); //FILE->NAME1
+                    mvprintw(LINES/2+offset, COLS/2-3, "%d", hiScoreArray[i].score); //FILE->SCORE1
+                    mvprintw(LINES/2+offset++, COLS/2+11, "%d", hiScoreArray[i].length); //FILE->LENGTH1   
                 }
 
             /*mvprintw(LINES/2-1, COLS/2-15, "Rich"); //FILE->NAME1
