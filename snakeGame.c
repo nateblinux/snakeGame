@@ -137,7 +137,7 @@ int gameSpeed = 3; //initial speed
 int difficulty = 1; //intiial difficulty
 int gamerScore = 0;
 int endGame = 0;
-int snake_len = INIT_LEN;
+int snake_len;
 int boost = MAX_BOOST;//inital boosts start at max
 int numHighScoreRecords = 0;
 char highScoreData[255];
@@ -217,6 +217,7 @@ void game_loop(int curr_x, int curr_y){
     int ch;
     int addch = 0;
     int jump = 0;
+    snake_len = INIT_LEN;//reset snake length
     while(!endGame){
         
         //slow vertical speed to make vertical speed feel consistent with horizontal speed
@@ -313,7 +314,7 @@ void game_loop(int curr_x, int curr_y){
         }
         if(DetectCollision(curr_x, curr_y) == 2){
             addch = food->new_len;
-            snake_len += addch;
+            snake_len += food->new_len;
             food->loops_alive = 0;
             if(boost < MAX_BOOST){ //cap the number of boosts able to be collected
                 boost+=1;
@@ -421,7 +422,7 @@ void placeFood(int collision){
         food->loops_alive = ((rand()%3) + 9)/(.22 / gameSpeed);// random value from 3 to 9 seconds in loops
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
-    mvprintw(LINES-2, 1, "                                 ");
+    mvprintw(LINES-2, 1, "                                                       ");
     mvprintw(LINES-2, 1, "loops-alive: %d, boost: %d snake length: %d", food->loops_alive, boost, snake_len);
 
 }
@@ -627,7 +628,6 @@ void scoreMenu() {
                         boost = 5;
                         resetHighScoreArray();
                         numHighScoreRecords = 0;
-                        snake_len = INIT_LEN;//reset snake length
                     main(); //start at the top
                     alive=0; //pointless?
                 }
