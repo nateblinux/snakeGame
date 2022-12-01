@@ -12,8 +12,6 @@
 #define SNAKE_CHAR 'o'
 #define HEAD_CHAR  'O'
 #define FOOD_CHAR  'b'
-#define WIN_MSG "YOU WON!"
-#define LOSE_MSG "GAME OVER"
 #define VERT_SPEED  220000
 #define HOR_SPEED   200000
 #define JUMP_SPACES 3 // # of spaces to jump
