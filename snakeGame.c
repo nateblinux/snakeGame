@@ -6,12 +6,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-<<<<<<< HEAD
-#define INIT_LEN 15 //inital length of snake always 2 or greater
-=======
 #define INIT_LEN 3 //inital length of snake always 2 or greater
->>>>>>> refs/remotes/origin/main
 #define SNAKE_CHAR 'o'
 #define HEAD_CHAR  'O'
 #define FOOD_CHAR  'b'
@@ -111,11 +108,13 @@ int gameSpeed = 3; //initial speed
 int difficulty = 1; //intiial difficulty
 int gamerScore = 0;
 int endGame = 0;
-int snake_len = 3;
+int snake_len = INIT_LEN;
+int boost = 5;//inital boosts
 //int continueGame=0;
 //WINDOW *score_win; //we're not doing windows.
 
 int main(){
+    srand ( time(NULL) );//seed rand with current time to prevent same sequence of numbers
     int curr_x, curr_y;//terminal height, width, current x and y of snake head
     int ch;
     char dir = 'l'; //current direction l, r, u, or d start by going left.
@@ -186,18 +185,18 @@ void game_loop(int curr_x, int curr_y){
     while(!endGame){
         
         //slow vertical speed to make vertical speed feel consistent with horizontal speed
-        if(!jump){
-            if(dir == 'u' || dir == 'd')
-                usleep(VERT_SPEED/gameSpeed);
-            else
-               usleep(HOR_SPEED/gameSpeed);//wait 250ms or .25 sec
-        }else{//reduce the delay for the jump to .001 sec per loop
+        if(jump > 0){
             if(dir == 'u' || dir == 'd')
                 usleep((VERT_SPEED/gameSpeed) / 2200);
             else
                usleep((HOR_SPEED/gameSpeed) / 2000);//wait 250ms or .25 sec
             jump--;
             food -> loops_alive++; //dont reduce loops alive for food
+        }else{//reduce the delay for the jump to .001 sec per loop
+            if(dir == 'u' || dir == 'd')
+                usleep(VERT_SPEED/gameSpeed);
+            else
+               usleep(HOR_SPEED/gameSpeed);//wait 250ms or .25 sec
         }
 
         //check keystroke
@@ -205,26 +204,34 @@ void game_loop(int curr_x, int curr_y){
             case KEY_UP:
                 //flush input buffer to prevent stacking keystrokes
                 flushinp();
-                if (dir == 'u')
-                    jump = JUMP_SPACES - 1; // correct for height difference
+                if (dir == 'u' && boost > 0){
+                    jump = JUMP_SPACES - 1;// correct for height difference
+                    boost--;
+                } 
                 else dir='u';
                 break;
             case KEY_DOWN:
                 flushinp();
-                if(dir == 'd')
+                if(dir == 'd' && boost > 0){
                     jump = JUMP_SPACES - 1;
+                    boost--;
+                }
                 else dir='d';
                 break;
             case KEY_LEFT:
                 flushinp();
-                if(dir == 'l')
+                if(dir == 'l' && boost > 0){
                     jump = JUMP_SPACES;
-                dir='l';
+                    boost--;
+                }
+                else dir='l';
                 break;
             case KEY_RIGHT:
                 flushinp();
-                if (dir == 'r')
+                if (dir == 'r' && boost > 0){
                     jump = JUMP_SPACES;
+                    boost--;
+                }
                 else dir='r';
                 break;
             case ' ':
@@ -235,9 +242,6 @@ void game_loop(int curr_x, int curr_y){
                 flushinp();
                 break;
         }
-
-        int xDifference = curr_x-head->x;
-        int yDifference = curr_y-head->y;
 
         //check current direction and move xy coordinates of snake head
         switch(dir) {
@@ -281,6 +285,7 @@ void game_loop(int curr_x, int curr_y){
             addch = food->new_len;
             snake_len += addch;
             food->loops_alive = 0;
+            boost+=3;
         }
         
         
@@ -385,7 +390,7 @@ void placeFood(int collision){
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
     mvprintw(LINES-2, 1, "                                 ");
-    mvprintw(LINES-2, 1, "loops-alive: %d, new length: %d snake length: %d", food->loops_alive, food->new_len, snake_len);
+    mvprintw(LINES-2, 1, "loops-alive: %d, boost: %d snake length: %d", food->loops_alive, boost, snake_len);
 
 }
 
@@ -475,6 +480,7 @@ void scoreMenu() {
                 else if(position==1) {
                     clear(); //clear the screen
                     gamerScore=0; //reset progress
+                    snake_len = INIT_LEN;//reset snake length
                     main(); //start at the top
                     alive=0;
                 }
@@ -800,8 +806,12 @@ void DeathAnimation(){
 
     if((head->x>=LINES/2-6 && head->x<=LINES/2+5) && (head->y>=COLS/2-15 && head->y<=COLS/2+15))
         do {
-            randomX = rand()%LINES;
-            randomY = rand()%COLS;
+            randomX = rand()%LINES - 5;
+            randomY = rand()%COLS - 1;
+            if(randomX < 1)
+                randomX = 1;
+            if(randomY < 1)
+                randomY = 1;
         } while ((randomX>=LINES/2-6 && randomX<=LINES/2+5) || (randomY>=COLS/2-15 && randomY<=COLS/2+15));
     generateBits(randomX, randomY); //start at head of snake
     //for(int i=0; i<10; i++) {
