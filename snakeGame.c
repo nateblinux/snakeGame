@@ -108,6 +108,7 @@ int difficulty = 1; //intiial difficulty
 int gamerScore = 0;
 int endGame = 0;
 int snake_len = 3;
+int numHighScoreRecords = 0;
 //int continueGame=0;
 //WINDOW *score_win; //we're not doing windows.
 
@@ -122,16 +123,23 @@ struct hiScore {
 };
 
 struct hiScore hiScoreArray[] = {
-    {" ", 0, 0},
-    {" ", 0, 0},
-    {" ", 0, 0},
-    {" ", 0, 0},
-    {" ", 0, 0}
+    {NULL, 0, 0},
+    {NULL, 0, 0},
+    {NULL, 0, 0},
+    {NULL, 0, 0},
+    {NULL, 0, 0}
 };
 
 void importHighScores() {
 
     char highScoreData[255];
+    struct hiScore hiScoreTemp[] = {
+        {NULL, 0, 0},
+        {NULL, 0, 0},
+        {NULL, 0, 0},
+        {NULL, 0, 0},
+        {NULL, 0, 0}
+    };
 
     FILE *fp;
     char ch;
@@ -151,28 +159,28 @@ void importHighScores() {
          //we have our string data separated by ,
         char *delim = ",";
         char *token = strtok(highScoreData, delim);
-        int count = 0, index = 0;
+        int count = 0;
         while(token != NULL) {
             switch(count%3) {
                 case 0:
-                    hiScoreArray[index].name = token;
+                    hiScoreArray[numHighScoreRecords].name = token;
                 case 1:
-                    hiScoreArray[index].score = atoi(token);
+                    hiScoreArray[numHighScoreRecords].score = atoi(token);
                 case 2:
-                    hiScoreArray[index].length = atoi(token);
+                    hiScoreArray[numHighScoreRecords].length = atoi(token);
             }
             count++;
             if(count%3==0)
-                index++;
+                numHighScoreRecords++;
             token = strtok(NULL, delim);
         }
     } //else fp = fopen("highscores.txt", "w"); //maybe create file at end?
 
-    //print hiScoreArray (TESTING)
-    /*for (int i=0; i<sizeof(hiScoreArray)/sizeof(hiScoreArray[0]); i++)
-        if(hiScoreArray[i].name != " ")
-            mvprintw((LINES-10)+i, 2, "name: %s, score: %d, length: %d", 
-                hiScoreArray[i].name, hiScoreArray[i].score, hiScoreArray[i].length);*/
+    //print hiScoreArray (TESTING) sizeof(hiScoreArray)/sizeof(hiScoreArray[0])
+    for (int i=0; i<numHighScoreRecords; i++)
+        //if(hiScoreArray[i].name != " ")
+            mvprintw((LINES-10)-(i+5), 2, "name: %s, score: %d, length: %d", 
+                hiScoreArray[i].name, hiScoreArray[i].score, hiScoreArray[i].length);
 }
 
 int main(){
@@ -219,6 +227,12 @@ int main(){
     init_snake(&curr_x, &curr_y);
     //main game loop
     importHighScores();
+
+    //WHY IS hiScoreArray CORRUPTED WHEN IT GETS HERE???
+    for (int i=0; i<numHighScoreRecords; i++)
+            //if(hiScoreArray[i].name != " ")
+                mvprintw((LINES-10)+i, 2, "name: %s, score: %d, length: %d", 
+                    hiScoreArray[i].name, hiScoreArray[i].score, hiScoreArray[i].length);
     game_loop(curr_x, curr_y);
     
     attroff(COLOR_PAIR(1)); //turn off COLORs 
@@ -526,12 +540,18 @@ void printHighScoreOptions(int position, int enterName) {
     switch(position) {
         case 0:
             attron(A_BOLD); //this will be a loop to loop through records
-            mvprintw(LINES/2-1, COLS/2-15, "Rich"); //FILE->NAME1
+            for(int i=0; i<numHighScoreRecords; i++) {
+                    mvprintw(LINES/2, COLS/2-15, "%s", hiScoreArray[i].name); //FILE->NAME1
+                    mvprintw(LINES/2-(i-1), COLS/2-3, "%05d", hiScoreArray[i].score); //FILE->SCORE1
+                    mvprintw(LINES/2-(i-1), COLS/2+11, "%03d", hiScoreArray[i].length); //FILE->LENGTH1   
+                }
+
+            /*mvprintw(LINES/2-1, COLS/2-15, "Rich"); //FILE->NAME1
             mvprintw(LINES/2-1, COLS/2-3, "%05d", 9546); //FILE->SCORE1
             mvprintw(LINES/2-1, COLS/2+11, "%03d", 45); //FILE->LENGTH1
             mvprintw(LINES/2,   COLS/2-15, "Nate"); //FILE->NAME2
             mvprintw(LINES/2,   COLS/2-3, "%05d", 746); //FILE->SCORE2
-            mvprintw(LINES/2,   COLS/2+11, "%03d", 22); //FILE->LENGTH2
+            mvprintw(LINES/2,   COLS/2+11, "%03d", 22); //FILE->LENGTH2*/
             attroff(A_BOLD);
             attron(A_STANDOUT);
             mvprintw(LINES/2+5, COLS/2-8, "%s", message);
