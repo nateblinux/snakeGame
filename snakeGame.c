@@ -335,6 +335,9 @@ void game_loop(int curr_x, int curr_y){
         placeFood();
         //mvprintw(LINES-6, 1, "xDf = %d", xDifference);
         //mvprintw(LINES-5, 1, "yDf = %d", yDifference);
+        if(snake_len >= LINES+COLS){
+            win();
+        }
         refresh();
         
     }
@@ -657,6 +660,7 @@ void game_over(){
 }
 
 void win(){
+    scoreMenu();
     clear();
     refresh();
 }
