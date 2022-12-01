@@ -1047,4 +1047,11 @@ void placeWalls(int difficulty){
         }
         refresh();
     }
+    if(difficulty == 3){
+        for(int i = 1; i < (2*(LINES / 3)); i++){
+            mvaddch(i, COLS/4, '|');
+            mvaddch(LINES - (i + 3), COLS/4 * 3, '|');
+        }
+        refresh();
+    }
 }
