@@ -151,6 +151,9 @@ int numHighScoreRecords = 0;
 char highScoreData[255];
 char userName[8];
 int newHighScore=0;
+int winCondition=0; //if 0 = dead, no high score
+                    //if 1 = dead, new high score
+                    //if 2 = continue to next level
 
 //int continueGame=0;
 //WINDOW *score_win; //we're not doing windows.
@@ -507,13 +510,15 @@ void checkGamerScore() {
             hiScoreArray[numHighScoreRecords-1].name = "";
             hiScoreArray[numHighScoreRecords-1].score = gamerScore;
             hiScoreArray[numHighScoreRecords-1].length = snake_len;
-            newHighScore=1;
+            newHighScore=1; //we have a new highscore
+            winCondition=1; //dead, with new highscore
         }
     } else {
         hiScoreArray[numHighScoreRecords].name = "";
         hiScoreArray[numHighScoreRecords].score = gamerScore;
         hiScoreArray[numHighScoreRecords++].length = snake_len;
         newHighScore=1;
+        winCondition=1;
     }
     sortHighScores();
 }
@@ -702,6 +707,7 @@ void printHighScoreOptions(int position) {
             getnstr(userName, 8);
             hiScoreArray[enterNamePosition].name = userName;
             newHighScore=0; //turn this off, because already entered.
+            winCondition=0; //they no longer have a high score to enter
             curs_set(0);
             break;
     }
@@ -748,9 +754,9 @@ void printScoreMenu(int won) { //won = 0: end of game, won=1: next level
     mvprintw(LINES/2-2, COLS/2-15, "*                            *");
     mvprintw(LINES/2-1, COLS/2-15, "*  Your score:               *");
     mvprintw(LINES/2,   COLS/2-15, "*                            *");
-    mvprintw(LINES/2+1, COLS/2-15, "*          Save Score        *");
-    mvprintw(LINES/2+2, COLS/2-15, "*            Retry           *");
-    mvprintw(LINES/2+3, COLS/2-15, "*            Exit            *");
+    mvprintw(LINES/2+1, COLS/2-15, "*                            *");
+    mvprintw(LINES/2+2, COLS/2-15, "*                            *");
+    mvprintw(LINES/2+3, COLS/2-15, "*                            *");
     mvprintw(LINES/2+4, COLS/2-15, "*                            *");
     mvprintw(LINES/2+5, COLS/2-15, "==============================");
     //attroff(COLOR_PAIR(3));
@@ -760,32 +766,99 @@ void printScoreMenu(int won) { //won = 0: end of game, won=1: next level
 void printScoreOptions(int position) {
     //init_pair(4, COLOR_GREEN, COLOR_BLACK); //is this global?
     attron(COLOR_PAIR(4));
+    char optionMsg0[] = "View High Scores";
+    char optionMsg1[] = "Save Score!";
+    char optionMsg2[] = "Next Level!";
+    char optionMsg[16];
+
+    char highScoreMsg0[] = "NEW HIGH SCORE!!";
+    char highScoreMsg1[] = "Awesome! You placed 2nd!";
+    char highScoreMsg2[] = "3rd Place Finish!";
+    char highScoreMsg3[] = "4th Place Finish!";
+    char highScoreMsg4[] = "Top 5 Finish!";
+    char highScoreMsg5[] = "You did not make Top 5 :(";
+    char highScoreMsg[25];
+
+    switch(winCondition) {
+        case 0:
+            //the following check is so, after entering score, they don't get Msg5 notice
+            int lowscore = hiScoreArray[numHighScoreRecords-1].score;
+            if(lowscore>gamerScore)
+                strcpy(highScoreMsg, highScoreMsg5);
+            else strcpy(highScoreMsg, ""); 
+            strcpy(optionMsg, optionMsg0);
+            break;
+        case 1:
+            int scorePosition;
+            for(int i=0; i<numHighScoreRecords; i++)
+                if(hiScoreArray[i].name == "")
+                    scorePosition = i;
+            switch(scorePosition) {
+                case 0:
+                    strcpy(highScoreMsg, highScoreMsg0);
+                    break;
+                case 1:
+                    strcpy(highScoreMsg, highScoreMsg1);
+                    break;
+                case 2:
+                    strcpy(highScoreMsg, highScoreMsg2);
+                    break;
+                case 3:
+                    strcpy(highScoreMsg, highScoreMsg3);
+                    break;
+                case 4:
+                    strcpy(highScoreMsg, highScoreMsg4);
+                    break;
+            }
+            strcpy(optionMsg, optionMsg1);
+            break;
+        case 2:
+            strcpy(optionMsg, optionMsg2);
+            break;
+    }
+    
+
     switch(position) {
         case 0:
             attron(A_BLINK);
-            mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
+            mvprintw(LINES/2-3, COLS/2-(strlen(highScoreMsg)/2), "%s", highScoreMsg);
             attroff(A_BLINK);
+            mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
             attron(A_STANDOUT);
-            mvprintw(LINES/2+1, COLS/2-4, "Save Score");
+            mvprintw(LINES/2+1, COLS/2-(strlen(optionMsg)/2), "%s", optionMsg);
             attroff(A_STANDOUT);
             mvprintw(LINES/2+2, COLS/2-2, "Retry");
             mvprintw(LINES/2+3, COLS/2-2, "Exit");
             break;
         case 1:
+            attron(A_BLINK);
+            mvprintw(LINES/2-3, COLS/2-(strlen(highScoreMsg)/2), "%s", highScoreMsg);
+            attroff(A_BLINK);
             mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
-            mvprintw(LINES/2+1, COLS/2-4, "Save Score");
+            mvprintw(LINES/2+1, COLS/2-(strlen(optionMsg)/2), "%s", optionMsg);
             attron(A_STANDOUT);
             mvprintw(LINES/2+2, COLS/2-2, "Retry");
             attroff(A_STANDOUT);
             mvprintw(LINES/2+3, COLS/2-2, "Exit");
             break;
         case 2:
+            attron(A_BLINK);
+            mvprintw(LINES/2-3, COLS/2-(strlen(highScoreMsg)/2), "%s", highScoreMsg);
+            attroff(A_BLINK);
             mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
-            mvprintw(LINES/2+1, COLS/2-4, "Save Score");
+            mvprintw(LINES/2+1, COLS/2-(strlen(optionMsg)/2), "%s", optionMsg);
             mvprintw(LINES/2+2, COLS/2-2, "Retry");
             attron(A_STANDOUT);
             mvprintw(LINES/2+3, COLS/2-2, "Exit");
             attroff(A_STANDOUT);
+            break;
+        case 3: //for this case, animation is playing, and we just want flashing msg & score
+            attron(A_BOLD);
+            mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
+            attroff(A_BOLD);
+            attron(A_BLINK);
+            mvprintw(LINES/2+2, COLS/2-12, "(Press Space to Continue)");
+            attroff(A_BLINK);
             break;
     }
 }
@@ -800,8 +873,8 @@ void scoreMenu() {
         ch = getch();
         switch(ch) {
             case '\n':
-                if(position==0)
-                    highScoreMenu(); //1: enter name mode
+                if(position==0) //and winCondition != 2 for "Continue"
+                    highScoreMenu(); //
                 else if(position==1) {
                     clear(); //clear the screen
                     //reset all Globals
@@ -1105,7 +1178,7 @@ void DeathAnimation(){
     mvaddch(erase->x,erase->y,' ');
 
     printScoreMenu(1);
-    printScoreOptions(0);
+    printScoreOptions(3);
 
     int randomX = head->x;
     if(randomX>=LINES-4)
@@ -1132,13 +1205,13 @@ void DeathAnimation(){
     
     int ch;
     do {
-        ch = getch();
+        //ch = getch();
         paintBits(BITS_CHAR); //paint bits with BITS_CHAR
         refresh();
         usleep(50000);
         paintBits(' '); //clear bits with ' '
         advanceBits();
-    } while(ch != KEY_DOWN && ch != '\n');
+    } while(getch() != ' ');
     /*while(getch() != KEY_DOWN) {
         paintBits(BITS_CHAR); //paint bits with BITS_CHAR
         refresh();
