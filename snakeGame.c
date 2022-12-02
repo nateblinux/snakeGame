@@ -792,7 +792,7 @@ void printScoreOptions(int position) {
 
 void scoreMenu() {
 
-    int position=1, alive=1;
+    int position=0, alive=1;
     int ch;
     while(alive) {
         printScoreMenu(1);
@@ -807,8 +807,10 @@ void scoreMenu() {
                     //reset all Globals
                         gamerScore=0; //reset progress
                         boost = 5;
-                        writeHighScoresToFile();
+                        if (userName[0] != '\0') //don't save the score if no name
+                            writeHighScoresToFile();
                         resetHighScoreArray();
+                        memset(userName, 0, sizeof(userName));
                         numHighScoreRecords = 0;
                     main(); //start at the top
                     alive=0; //pointless?
@@ -1127,13 +1129,22 @@ void DeathAnimation(){
                 randomY = 1;
         } while ((randomX>=LINES/2-6 && randomX<=LINES/2+5) || (randomY>=COLS/2-15 && randomY<=COLS/2+15));
     generateBits(randomX, randomY); //start at head of snake
-    //for(int i=0; i<10; i++) {
-    while(getch() != KEY_DOWN) {
+    
+    int ch;
+    do {
+        ch = getch();
         paintBits(BITS_CHAR); //paint bits with BITS_CHAR
         refresh();
         usleep(50000);
         paintBits(' '); //clear bits with ' '
         advanceBits();
-    }
+    } while(ch != KEY_DOWN && ch != '\n');
+    /*while(getch() != KEY_DOWN) {
+        paintBits(BITS_CHAR); //paint bits with BITS_CHAR
+        refresh();
+        usleep(50000);
+        paintBits(' '); //clear bits with ' '
+        advanceBits();
+    }*/
     clearMenu();
 }
