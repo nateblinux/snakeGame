@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <wchar.h>
 
 #define INIT_LEN 3 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'o'
@@ -118,6 +119,12 @@ void placeFood();
 //Option menu, with welcome option
 void optionMenu(int);
 
+//GAME-OVER MENU
+void scoreMenu();
+
+void checkGamerScore();
+void writeHighScoresToFile();
+
 //high score menu
 void importHighScores();
 
@@ -142,6 +149,8 @@ int snake_len;
 int boost;
 int numHighScoreRecords = 0;
 char highScoreData[255];
+char userName[8];
+int newHighScore=0;
 
 //int continueGame=0;
 //WINDOW *score_win; //we're not doing windows.
@@ -448,6 +457,159 @@ void del_tail(){
     free(old_tail);
 }
 
+//==================================
+//GAME EVENTS (WIN/LOSE)
+//==================================
+
+void game_over(){
+    DeathAnimation();
+    checkGamerScore(); 
+    //newHighScore=1; //we'll check this in addScoreHighScores
+    scoreMenu();
+    clear();
+    refresh();
+}
+
+void win(){
+    scoreMenu();
+    clear();
+    refresh();
+}
+
+//==================================
+//CREATE LEVELS
+//==================================
+
+void placeWalls(int difficulty){
+    if(difficulty == 2){
+        for(int i = (LINES / 3); i < (2*(LINES / 3)); i++){
+            mvaddch(i, COLS/2, '|');
+        }
+        refresh();
+    }
+    if(difficulty == 3){
+        for(int i = 1; i < (2*(LINES / 3)); i++){
+            mvaddch(i, COLS/4, '|');
+            mvaddch(LINES - (i + 3), COLS/4 * 3, '|');
+        }
+        refresh();
+    }
+}
+
+//==================================
+//PROCESS GAMER SCORE
+//==================================
+
+void checkGamerScore() {
+    if(numHighScoreRecords>=5) {
+        int lowScore = hiScoreArray[numHighScoreRecords-1].score;
+        if(gamerScore>lowScore) {
+            hiScoreArray[numHighScoreRecords-1].name = "";
+            hiScoreArray[numHighScoreRecords-1].score = gamerScore;
+            hiScoreArray[numHighScoreRecords-1].length = snake_len;
+            newHighScore=1;
+        }
+    } else {
+        hiScoreArray[numHighScoreRecords].name = "";
+        hiScoreArray[numHighScoreRecords].score = gamerScore;
+        hiScoreArray[numHighScoreRecords++].length = snake_len;
+        newHighScore=1;
+    }
+    sortHighScores();
+}
+
+//==================================
+//FILE HANDLING / IMPORT HIGH SCORES
+//==================================
+
+void importHighScores() {
+
+    FILE *fp;
+    char ch;
+    int i = 0;
+    if((fp = fopen("highscores.txt", "r")) != NULL) {
+        while( (ch = getc(fp)) != EOF ) {
+            highScoreData[i++] = ch;
+        }
+    
+        fclose(fp);
+
+         //we have our string data separated by ,
+        char *delim = ",";
+        char *token = strtok(highScoreData, delim);
+        int count = 0;
+        while(token != NULL) {
+            switch(count%3) {
+                case 0:
+                    hiScoreArray[numHighScoreRecords].name = token;
+                    break;
+                case 1:
+                    hiScoreArray[numHighScoreRecords].score = atoi(token);
+                    break;
+                case 2:
+                    hiScoreArray[numHighScoreRecords].length = atoi(token);
+                    break;
+            }
+            count++;
+            if(count%3==0)
+                numHighScoreRecords++;
+            token = strtok(NULL, delim);
+        }
+    } //else fp = fopen("highscores.txt", "w"); //maybe create file at end?
+
+    //print hiScoreArray (TESTING) sizeof(hiScoreArray)/sizeof(hiScoreArray[0])
+    /*for (int i=0; i<numHighScoreRecords; i++)
+        //if(hiScoreArray[i].name != " ")
+            mvprintw((LINES-10)-(i+5), 2, "name: %s, score: %d, length: %d, index: %d", 
+                hiScoreArray[i].name, hiScoreArray[i].score, hiScoreArray[i].length, i);*/
+}
+
+void writeHighScoresToFile() {
+    FILE *fp;
+    char ch;
+    int i = 0;
+    fp = fopen("highscores.txt", "w+");
+    while(i<numHighScoreRecords) {
+        fprintf(fp, "%s,%d,%d", hiScoreArray[i].name, hiScoreArray[i].score, hiScoreArray[i].length);
+        if(++i != numHighScoreRecords)
+            fputc(',',fp);
+    }
+    fclose(fp);
+}
+
+void sortHighScores() {
+    char *temp_name;
+    int temp_score, temp_length;
+    for(int i=0; i<numHighScoreRecords; i++)
+        for(int j=i+1; j<numHighScoreRecords; j++)
+            if(hiScoreArray[i].score<hiScoreArray[j].score) {
+                //swap name
+                temp_name = hiScoreArray[i].name;
+                hiScoreArray[i].name = hiScoreArray[j].name;
+                hiScoreArray[j].name = temp_name;
+                //swap score
+                temp_score = hiScoreArray[i].score;
+                hiScoreArray[i].score = hiScoreArray[j].score;
+                hiScoreArray[j].score = temp_score;
+                //swap length
+                temp_length = hiScoreArray[i].length;
+                hiScoreArray[i].length = hiScoreArray[j].length;
+                hiScoreArray[j].length = temp_length;
+            }
+}
+
+void resetHighScoreArray() {
+    for(int i=0; i<numHighScoreRecords; i++) {
+        hiScoreArray[i].name = '\0';
+        hiScoreArray[i].score = 0;
+        hiScoreArray[i].length = 0;
+    }
+}
+
+//=================================
+//Clear All Menus
+//=================================
+
 void clearMenu() {
     mvprintw(LINES/2-7, COLS/2-20, "                                        ");
     mvprintw(LINES/2-6, COLS/2-20, "                                        ");
@@ -492,60 +654,78 @@ void printHighScoreMenu() {
     mvprintw(LINES/2+7, COLS/2-20, "========================================");
 }
 
-void printHighScoreOptions(int position, int enterName) {
+void printHighScoreOptions(int position) {
     init_pair(4, COLOR_GREEN, COLOR_BLACK);
     attron(COLOR_PAIR(4));
     char message1[] = "(Press enter key)";
-    char message2[] = "  (Enter Name!)  ";
+    char message2[] = "(Press UP to enter name)";
     char message[13];
-    if (enterName==1)
+    int offset;
+    if (newHighScore==1)
         strcpy(message, message2);
     else strcpy(message, message1);
     switch(position) {
         case 0:
             attron(A_BOLD); //this will be a loop to loop through records
-            int offset = -1;
+            offset = -1;
             for(int i=0; i<numHighScoreRecords; i++) {
                     mvprintw(LINES/2+offset, COLS/2-15, "%s", hiScoreArray[i].name); //FILE->NAME1
                     mvprintw(LINES/2+offset, COLS/2-3, "%d", hiScoreArray[i].score); //FILE->SCORE1
                     mvprintw(LINES/2+offset++, COLS/2+11, "%d", hiScoreArray[i].length); //FILE->LENGTH1   
                 }
-
-            /*mvprintw(LINES/2-1, COLS/2-15, "Rich"); //FILE->NAME1
-            mvprintw(LINES/2-1, COLS/2-3, "%05d", 9546); //FILE->SCORE1
-            mvprintw(LINES/2-1, COLS/2+11, "%03d", 45); //FILE->LENGTH1
-            mvprintw(LINES/2,   COLS/2-15, "Nate"); //FILE->NAME2
-            mvprintw(LINES/2,   COLS/2-3, "%05d", 746); //FILE->SCORE2
-            mvprintw(LINES/2,   COLS/2+11, "%03d", 22); //FILE->LENGTH2*/
             attroff(A_BOLD);
             attron(A_STANDOUT);
-            mvprintw(LINES/2+5, COLS/2-8, "%s", message);
+            mvprintw(LINES/2+5, COLS/2-(strlen(message)/2), "%s", message);
             attroff(A_STANDOUT);
+            break;
+        case 1:
+            attron(A_BOLD); //this will be a loop to loop through records
+            int enterNamePosition = -1;
+            offset = -1;
+            for(int i=0; i<numHighScoreRecords; i++) {
+                    if(hiScoreArray[i].name == "")
+                        enterNamePosition = i;
+                    mvprintw(LINES/2+offset, COLS/2-15, "%s", hiScoreArray[i].name); //FILE->NAME1
+                    mvprintw(LINES/2+offset, COLS/2-3, "%d", hiScoreArray[i].score); //FILE->SCORE1
+                    mvprintw(LINES/2+offset++, COLS/2+11, "%d", hiScoreArray[i].length); //FILE->LENGTH1   
+            }
+            offset = -1; //reset offset
+            attroff(A_BOLD);
+            
+            attron(A_STANDOUT);
+            mvprintw(LINES/2+5, COLS/2-(strlen(message)/2), "%s", message);
+            attroff(A_STANDOUT);         
+            echo();
+            nodelay(stdscr, FALSE);
+            curs_set(1);
+            move(LINES/2+(offset+enterNamePosition), COLS/2-15);
+            getnstr(userName, 8);
+            hiScoreArray[enterNamePosition].name = userName;
+            newHighScore=0; //turn this off, because already entered.
+            curs_set(0);
             break;
     }
 
 }
 
-void highScoreMenu(int enterName) { //if 1, enterName allows entry
+void highScoreMenu() { //if 1, newHighScore allows entry
     int position=0, resume=0;
     int ch;
     while(!resume) {
         printHighScoreMenu();
-        printHighScoreOptions(position, enterName);
+        printHighScoreOptions(position);
         ch = getch();
         switch(ch) {
             case '\n':
                 if(position==0)
                     resume=1;
-                else if(position==1); //has to be enterName mode
-                    //ENTER NAME SCORE DETAILS in FILE
                 break;
             case KEY_UP:
-                if((enterName == 1) && (position<1))
+                if((newHighScore == 1) && (position<1))
                     position++;
                 break;
             case KEY_DOWN:
-                if((enterName == 1) && (position>0))
+                if(position>0)
                     position--;
                 break;
         }
@@ -621,12 +801,13 @@ void scoreMenu() {
         switch(ch) {
             case '\n':
                 if(position==0)
-                    highScoreMenu(0); //1: enter name mode
+                    highScoreMenu(); //1: enter name mode
                 else if(position==1) {
                     clear(); //clear the screen
                     //reset all Globals
                         gamerScore=0; //reset progress
                         boost = 5;
+                        writeHighScoresToFile();
                         resetHighScoreArray();
                         numHighScoreRecords = 0;
                     main(); //start at the top
@@ -647,18 +828,6 @@ void scoreMenu() {
         refresh();
     }
     //clearMenu();
-}
-void game_over(){
-    DeathAnimation();
-    scoreMenu();
-    clear();
-    refresh();
-}
-
-void win(){
-    scoreMenu();
-    clear();
-    refresh();
 }
 
 //=================================
@@ -967,91 +1136,4 @@ void DeathAnimation(){
         advanceBits();
     }
     clearMenu();
-}
-
-void importHighScores() {
-
-    FILE *fp;
-    char ch;
-    int i = 0;
-    if((fp = fopen("highscores.txt", "r")) != NULL) {
-        while( (ch = getc(fp)) != EOF ) {
-            highScoreData[i++] = ch;
-        }
-    
-        fclose(fp);
-
-         //we have our string data separated by ,
-        char *delim = ",";
-        char *token = strtok(highScoreData, delim);
-        int count = 0;
-        while(token != NULL) {
-            switch(count%3) {
-                case 0:
-                    hiScoreArray[numHighScoreRecords].name = token;
-                    break;
-                case 1:
-                    hiScoreArray[numHighScoreRecords].score = atoi(token);
-                    break;
-                case 2:
-                    hiScoreArray[numHighScoreRecords].length = atoi(token);
-                    break;
-            }
-            count++;
-            if(count%3==0)
-                numHighScoreRecords++;
-            token = strtok(NULL, delim);
-        }
-    } //else fp = fopen("highscores.txt", "w"); //maybe create file at end?
-
-    //print hiScoreArray (TESTING) sizeof(hiScoreArray)/sizeof(hiScoreArray[0])
-    /*for (int i=0; i<numHighScoreRecords; i++)
-        //if(hiScoreArray[i].name != " ")
-            mvprintw((LINES-10)-(i+5), 2, "name: %s, score: %d, length: %d, index: %d", 
-                hiScoreArray[i].name, hiScoreArray[i].score, hiScoreArray[i].length, i);*/
-}
-
-void sortHighScores() {
-    char *temp_name;
-    int temp_score, temp_length;
-    for(int i=0; i<numHighScoreRecords; i++)
-        for(int j=i+1; j<numHighScoreRecords; j++)
-            if(hiScoreArray[i].score<hiScoreArray[j].score) {
-                //swap name
-                temp_name = hiScoreArray[i].name;
-                hiScoreArray[i].name = hiScoreArray[j].name;
-                hiScoreArray[j].name = temp_name;
-                //swap score
-                temp_score = hiScoreArray[i].score;
-                hiScoreArray[i].score = hiScoreArray[j].score;
-                hiScoreArray[j].score = temp_score;
-                //swap length
-                temp_length = hiScoreArray[i].length;
-                hiScoreArray[i].length = hiScoreArray[j].length;
-                hiScoreArray[j].length = temp_length;
-            }
-}
-
-void resetHighScoreArray() {
-    for(int i=0; i<numHighScoreRecords; i++) {
-        hiScoreArray[i].name = '\0';
-        hiScoreArray[i].score = 0;
-        hiScoreArray[i].length = 0;
-    }
-}
-
-void placeWalls(int difficulty){
-    if(difficulty == 2){
-        for(int i = (LINES / 3); i < (2*(LINES / 3)); i++){
-            mvaddch(i, COLS/2, '|');
-        }
-        refresh();
-    }
-    if(difficulty == 3){
-        for(int i = 1; i < (2*(LINES / 3)); i++){
-            mvaddch(i, COLS/4, '|');
-            mvaddch(LINES - (i + 3), COLS/4 * 3, '|');
-        }
-        refresh();
-    }
 }

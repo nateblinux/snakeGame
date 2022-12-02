@@ -1,1 +1,1 @@
-Rich,480,20,Olivia,1000,26,Nate,720,15
+NEWSCORE,1278,28,Rich,632,15,Nate,248,8,Olivia,100,20
