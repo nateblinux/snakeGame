@@ -456,7 +456,7 @@ void placeFood(int collision){
                 food->Y++;
             char_at = mvinch(food->X, food->Y) & A_CHARTEXT;
         }while((char)char_at != ' '); //make sure food does not generate inside the snake
-        food->loops_alive = ((rand()%3) + 9)/((HOR_SPEED/gameSpeed) - ((snake_len / 3) - 1) * SPEED_SCALING);// random value from 3 to 9 seconds in loops
+        food->loops_alive = ((rand()%3) + 9)/(.22 / gameSpeed);// random value from 3 to 9 seconds in loops
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
 }
