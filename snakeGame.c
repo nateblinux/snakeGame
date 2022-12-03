@@ -9,16 +9,14 @@
 #include <time.h>
 #include <wchar.h>
 
-#define INIT_LEN 15 //inital length of snake always 2 or greater
+#define INIT_LEN 5 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'o'
 #define HEAD_CHAR  'O'
 #define FOOD_CHAR  'b'
 #define VERT_SPEED  220000
 #define HOR_SPEED   200000
 #define JUMP_SPACES 3 // # of spaces to jump
-#define BOOST_DIV 400 // number to devide area of screen by for max boosts
-
-//TEST CHANGE for Git
+#define BOOST_DIV 200 // number to divide area of screen by for max boosts
 
 //death animation
 #define BITS_CHAR  'o'
@@ -211,7 +209,7 @@ int main(){
     //Get high scores from highscores.txt
     importHighScores();
     sortHighScores();
-    
+
     //open menu system
     optionMenu(0); //0 because game has not begun
 
@@ -341,9 +339,10 @@ void game_loop(int curr_x, int curr_y){
         if(DetectCollision(curr_x, curr_y) == 2){
             addch = food->new_len;
             snake_len += food->new_len;
+            gamerScore += food->loops_alive; //score decreases as loops_alive decreases
             food->loops_alive = 0;
             if(boost < (LINES * COLS) / BOOST_DIV){ //cap the number of boosts able to be collected
-                boost+=1;
+                boost+=3;
             }
         }
         
@@ -352,8 +351,20 @@ void game_loop(int curr_x, int curr_y){
         new_head(curr_x, curr_y);
         //redraw head in new location
         mvaddch(head->x, head->y, HEAD_CHAR);
-
-        //GAMER SCORE
+        
+        //GAME STATS
+        mvprintw(LINES-2, 2, "Trophy Value: %03d", food->loops_alive);
+        mvprintw(LINES-2, COLS/2-6, "Boost:");
+        mvprintw(LINES-2, COLS/2, "                     ");
+        if(boost<=20) {
+            //if(boost<=5)
+                //attron(COLOR_PAIR(5));
+            for(int i=1; i<=boost; i++)
+                mvaddch(LINES-2, COLS/2+i, '#');
+            //if(boost<=5)
+                //attroff(COLOR_PAIR(5));
+        }
+        else mvprintw(LINES-2, COLS/2+1, "%d", boost);
         mvprintw(LINES-1, 2, "Score: %05d", gamerScore);
         //refresh the window to apply changes
         placeFood();
@@ -414,7 +425,6 @@ void init_snake(int * curr_x, int * curr_y){
 int DetectCollision(int new_x, int new_y) {
     //detect food collision
     if((head->x == food->X) && (head->y == food->Y)){
-        gamerScore += food->loops_alive; //score decreases as loops_alive decreases
         return 2;
     }
     int char_at = mvinch(new_x, new_y) & A_CHARTEXT; 
@@ -447,9 +457,6 @@ void placeFood(int collision){
         food->loops_alive = ((rand()%3) + 9)/(.22 / gameSpeed);// random value from 3 to 9 seconds in loops
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
-    mvprintw(LINES-2, 1, "                                                       ");
-    mvprintw(LINES-2, 1, "loops-alive: %d, boost: %d snake length: %d", food->loops_alive, boost, snake_len);
-
 }
 
 //add a new head to the linked list
@@ -479,7 +486,6 @@ void del_tail(){
 void game_over(){
     DeathAnimation();
     checkGamerScore(); 
-    //newHighScore=1; //we'll check this in addScoreHighScores
     scoreMenu();
     clear();
     refresh();
@@ -607,13 +613,7 @@ void importHighScores() {
                 numHighScoreRecords++;
             token = strtok(NULL, delim);
         }
-    } //else fp = fopen("highscores.txt", "w"); //maybe create file at end?
-
-    //print hiScoreArray (TESTING) sizeof(hiScoreArray)/sizeof(hiScoreArray[0])
-    /*for (int i=0; i<numHighScoreRecords; i++)
-        //if(hiScoreArray[i].name != " ")
-            mvprintw((LINES-10)-(i+5), 2, "name: %s, score: %d, length: %d, index: %d", 
-                hiScoreArray[i].name, hiScoreArray[i].score, hiScoreArray[i].length, i);*/
+    }
 }
 
 void writeHighScoresToFile() {
@@ -794,7 +794,7 @@ void highScoreMenu() { //if 1, newHighScore allows entry
 void printScoreMenu(int won) { //won = 0: end of game, won=1: next level
     init_pair(3, COLOR_BLUE, COLOR_BLACK);
     attron(COLOR_PAIR(3));
-    mvprintw(LINES/2-6, COLS/2-15, "==============================");
+    mvprintw(LINES/2-6, COLS/2-15, "*============================*");
     mvprintw(LINES/2-5, COLS/2-15, "*          GAME OVER!        *");
     mvprintw(LINES/2-4, COLS/2-15, "*                            *");
     mvprintw(LINES/2-3, COLS/2-15, "*                            *");
@@ -805,7 +805,7 @@ void printScoreMenu(int won) { //won = 0: end of game, won=1: next level
     mvprintw(LINES/2+2, COLS/2-15, "*                            *");
     mvprintw(LINES/2+3, COLS/2-15, "*                            *");
     mvprintw(LINES/2+4, COLS/2-15, "*                            *");
-    mvprintw(LINES/2+5, COLS/2-15, "==============================");
+    mvprintw(LINES/2+5, COLS/2-15, "*============================*");
     //attroff(COLOR_PAIR(3));
 }
 
@@ -1116,14 +1116,14 @@ void advanceBits(struct bit *bits) {
             case 0: //up
                 char_at = mvinch(bits[i].x-1, bits[i].y) & A_CHARTEXT;
                 if (char_at == '-' || char_at == '=') {
-                    bits[i].dir = 4;
+                    bits[i].dir = 4;    
                     bits[i].x += 1;
                 } else bits[i].x -= 1;
                 break;
             case 1: //up-right
                 char_at = mvinch(bits[i].x-1, bits[i].y+1) & A_CHARTEXT;
                 if (char_at == '|' || char_at == '*') {
-                    bits[i].dir = 7;
+                    bits[i].dir = 7;    
                     bits[i].x -= 1;
                     bits[i].y -= 1;
                 } else if (char_at == '-' || char_at == '=') {
@@ -1277,9 +1277,9 @@ void DeathAnimation(){
         do {
             bits1RandomX = rand()%LINES - 5;
             bits1RandomY = rand()%COLS - 1;
-            if(bits1RandomX < 1)
+            if(bits1RandomX < 2)
                 bits1RandomX = 2;
-            if(bits1RandomY < 1)
+            if(bits1RandomY < 2)
                 bits1RandomY = 2;
         } while ((bits1RandomX>=LINES/2-6 && bits1RandomX<=LINES/2+5) && (bits1RandomY>=COLS/2-15 && bits1RandomY<=COLS/2+15));
     
@@ -1287,9 +1287,9 @@ void DeathAnimation(){
         do {
             bits2RandomX = rand()%LINES - 5;
             bits2RandomY = rand()%COLS - 1;
-            if(bits2RandomX < 1)
+            if(bits2RandomX < 2)
                 bits2RandomX = 2;
-            if(bits2RandomY < 1)
+            if(bits2RandomY < 2)
                 bits2RandomY = 2;
         } while ((bits2RandomX>=LINES/2-6 && bits2RandomX<=LINES/2+5) && (bits2RandomY>=COLS/2-15 && bits2RandomY<=COLS/2+15));
 
