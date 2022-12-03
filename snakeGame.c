@@ -9,7 +9,7 @@
 #include <time.h>
 #include <wchar.h>
 
-#define INIT_LEN 5 //inital length of snake always 2 or greater
+#define INIT_LEN 3 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'o'
 #define HEAD_CHAR  'O'
 #define FOOD_CHAR  'b'
@@ -372,6 +372,7 @@ void game_loop(int curr_x, int curr_y){
         //mvprintw(LINES-5, 1, "yDf = %d", yDifference);
         if(snake_len >= LINES+COLS){
             win();
+            endGame = 1;
         }
         refresh();
         
