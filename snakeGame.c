@@ -9,7 +9,7 @@
 #include <time.h>
 #include <wchar.h>
 
-#define INIT_LEN 3 //inital length of snake always 2 or greater
+#define INIT_LEN 15 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'o'
 #define HEAD_CHAR  'O'
 #define FOOD_CHAR  'b'
@@ -30,7 +30,18 @@ struct bit {
 };
 
 //Global
-struct bit bits[] = { //initialize array of bit structs
+struct bit bits1[] = { //initialize array of bit structs
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+};
+
+struct bit bits2[] = { //initialize array of bit structs
             {0, 0, 0},
             {0, 0, 0},
             {0, 0, 0},
@@ -104,11 +115,11 @@ void win();
 //Death animation prototypes:
 void DeathAnimation();
 
-void advanceBits();
+void advanceBits(struct bit *);
 
-void paintBits(char ch);
+void paintBits(struct bit *, char ch);
 
-void generateBits(int x, int y);
+void generateBits(struct bit *, int x, int y);
 
 //collision detection 1 if collision with wall or body 2 if with food
 int DetectCollision(int new_x, int new_y);
@@ -197,14 +208,15 @@ int main(){
     //draw the main screen
     start_screen();
 
+    //Get high scores from highscores.txt
+    importHighScores();
+    sortHighScores();
+    
     //open menu system
     optionMenu(0); //0 because game has not begun
 
     //create window for snake to live in sitting inside border
     init_snake(&curr_x, &curr_y);
-    //Get high scores from highscores.txt
-    importHighScores();
-    sortHighScores();
     //main game loop
     game_loop(curr_x, curr_y);
     
@@ -924,6 +936,8 @@ void scoreMenu() {
                     alive=0; //pointless?
                 }
                 else {
+                    if (userName[0] != '\0') //don't save the score if no name
+                            writeHighScoresToFile();
                     endGame=1;
                     alive=0;
                 }
@@ -957,7 +971,8 @@ void printMenu() {
     mvprintw(LINES/2+2, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+3, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+4, COLS/2-20, "*                                      *");
-    mvprintw(LINES/2+5, COLS/2-20, "========================================");
+    mvprintw(LINES/2+5, COLS/2-20, "*                                      *");
+    mvprintw(LINES/2+6, COLS/2-20, "========================================");
     //attroff(COLOR_PAIR(3));
 }
 
@@ -974,34 +989,47 @@ void printOptions(int position, int inGame) {
         case 0:
             mvprintw(LINES/2-1,   COLS/2, "[%d]", gameSpeed);
             mvprintw(LINES/2, COLS/2, "[%d]", difficulty);
-            mvprintw(LINES/2+2, COLS/2-8, "%s", message);
+            mvprintw(LINES/2+2, COLS/2-(strlen(message)/2), "%s", message);
+            mvprintw(LINES/2+3, COLS/2-8, "View High Scores");
             attron(A_STANDOUT);
-            mvprintw(LINES/2+3, COLS/2-5, "Exit");
+            mvprintw(LINES/2+4, COLS/2-2, "Exit");
             attroff(A_STANDOUT);
             break;
         case 1:
+            mvprintw(LINES/2-1,   COLS/2, "[%d]", gameSpeed);
+            mvprintw(LINES/2, COLS/2, "[%d]", difficulty);
+            mvprintw(LINES/2+2, COLS/2-(strlen(message)/2), "%s", message);
+            attron(A_STANDOUT);
+            mvprintw(LINES/2+3, COLS/2-8, "View High Scores");
+            attroff(A_STANDOUT);
+            mvprintw(LINES/2+4, COLS/2-2, "Exit");
+            break;
+        case 2:
             mvprintw(LINES/2-1, COLS/2, "[%d]", gameSpeed);
             mvprintw(LINES/2,   COLS/2, "[%d]", difficulty);
             attron(A_STANDOUT);
-            mvprintw(LINES/2+2, COLS/2-8, "%s", message);
+            mvprintw(LINES/2+2, COLS/2-(strlen(message)/2), "%s", message);
             attroff(A_STANDOUT);
-            mvprintw(LINES/2+3, COLS/2-5, "Exit");
+            mvprintw(LINES/2+3, COLS/2-8, "View High Scores");
+            mvprintw(LINES/2+4, COLS/2-2, "Exit");
             break;
-        case 2:
+        case 3:
             mvprintw(LINES/2-1, COLS/2, "[%d]", gameSpeed);
             attron(A_STANDOUT);
             mvprintw(LINES/2,   COLS/2, "<%d>", difficulty);
             attroff(A_STANDOUT);
-            mvprintw(LINES/2+2, COLS/2-8, "%s", message);
-            mvprintw(LINES/2+3, COLS/2-5, "Exit");
+            mvprintw(LINES/2+2, COLS/2-(strlen(message)/2), "%s", message);
+            mvprintw(LINES/2+3, COLS/2-8, "View High Scores");
+            mvprintw(LINES/2+4, COLS/2-2, "Exit");
             break;
-        case 3:
+        case 4:
             attron(A_STANDOUT);
             mvprintw(LINES/2-1, COLS/2, "<%d>", gameSpeed);
             attroff(A_STANDOUT);
             mvprintw(LINES/2,   COLS/2, "[%d]", difficulty);
-            mvprintw(LINES/2+2, COLS/2-8, "%s", message);
-            mvprintw(LINES/2+3, COLS/2-5, "Exit");
+            mvprintw(LINES/2+2, COLS/2-(strlen(message)/2), "%s", message);
+            mvprintw(LINES/2+3, COLS/2-8, "View High Scores");
+            mvprintw(LINES/2+4, COLS/2-2, "Exit");
             break;
     }
     //attroff(COLOR_PAIR(4));
@@ -1010,7 +1038,7 @@ void printOptions(int position, int inGame) {
 
 void optionMenu(int inGame) { //inGame lets us know if the game is in progress
     
-    int position=1, gameStart=0;
+    int position=2, gameStart=0;
     int ch;
     while (!gameStart) {
         printMenu();
@@ -1018,31 +1046,37 @@ void optionMenu(int inGame) { //inGame lets us know if the game is in progress
         ch = getch();
         switch(ch) {
             case '\n':
-                if(position==1)
-                    gameStart=1;
-                else if(position==0) {
-                    endGame=1;
-                    gameStart=1;
+                switch(position) {
+                    case 0:
+                        endGame=1;
+                        gameStart=1;
+                        break;
+                    case 1:
+                        highScoreMenu();
+                        break;
+                    case 2:
+                        gameStart=1;
+                        break;
                 }
                 break;
             case KEY_UP:
-                if(position<3)
+                if(position<4)
                     position++;
                 break;    
             case KEY_DOWN:
-                if(position>=1)
+                if(position>0)
                     position--;    
                 break;
             case KEY_RIGHT:
-                if(position==3 && gameSpeed<5)
+                if(position==4 && gameSpeed<5)
                     gameSpeed++;
-                else if(position==2 && difficulty<5)
+                else if(position==3 && difficulty<5)
                     difficulty++;
                 break;
             case KEY_LEFT:
-                if(position==3 && gameSpeed>1)
+                if(position==4 && gameSpeed>1)
                     gameSpeed--;
-                else if(position==2 && difficulty>1)
+                else if(position==3 && difficulty>1)
                     difficulty--;
                 break;
         }
@@ -1057,7 +1091,7 @@ void optionMenu(int inGame) { //inGame lets us know if the game is in progress
 //DEATH ANIMATION / EXPLODING BITS
 //=================================
 
-void generateBits(int x, int y){
+void generateBits(struct bit *bits, int x, int y){
     for(int i=0; i<8; i++) {
         bits[i].x=x;
         bits[i].y=y;
@@ -1065,7 +1099,7 @@ void generateBits(int x, int y){
     }
 }
 
-void paintBits(char ch){
+void paintBits(struct bit *bits, char ch){
     init_pair(0, COLOR_RED, COLOR_BLACK);
     init_pair(1, COLOR_YELLOW, COLOR_BLACK);
     //attron(COLOR_PAIR(5));
@@ -1075,7 +1109,7 @@ void paintBits(char ch){
     }
 }
 
-void advanceBits() {
+void advanceBits(struct bit *bits) {
     int char_at;
     for(int i=0; i<8; i++) {
         switch(bits[i].dir) {
@@ -1215,37 +1249,63 @@ void DeathAnimation(){
     printScoreMenu(1);
     printScoreOptions(3);
 
-    int randomX = head->x;
-    if(randomX>=LINES-4)
-        randomX -= 1;
-    else if (randomX<=1)
-        randomX += 1;
+    int bits1RandomX = head->x;
+    if(bits1RandomX>=LINES-4)
+        bits1RandomX -= 2;
+    else if (bits1RandomX<=1)
+        bits1RandomX += 2;
 
-    int randomY = head->y;
-    if(randomY>=COLS-2)
-        randomY -= 1;
-    else if (randomY<=1)
-        randomY += 1;
+    int bits1RandomY = head->y;
+    if(bits1RandomY>=COLS-2)
+        bits1RandomY -= 2;
+    else if (bits1RandomY<=1)
+        bits1RandomY += 2;
+
+    int bits2RandomX = tail->x;
+    if(bits2RandomX>=LINES-4)
+        bits2RandomX -= 2;
+    else if (bits2RandomX<=1)
+        bits2RandomX += 2;
+
+    int bits2RandomY = tail->y;
+    if(bits2RandomY>=COLS-2)
+        bits2RandomY -= 2;
+    else if (bits2RandomY<=1)
+        bits2RandomY += 2;
 
     if((head->x>=LINES/2-6 && head->x<=LINES/2+5) && (head->y>=COLS/2-15 && head->y<=COLS/2+15))
         do {
-            randomX = rand()%LINES - 5;
-            randomY = rand()%COLS - 1;
-            if(randomX < 1)
-                randomX = 1;
-            if(randomY < 1)
-                randomY = 1;
-        } while ((randomX>=LINES/2-6 && randomX<=LINES/2+5) || (randomY>=COLS/2-15 && randomY<=COLS/2+15));
-    generateBits(randomX, randomY); //start at head of snake
+            bits1RandomX = rand()%LINES - 5;
+            bits1RandomY = rand()%COLS - 1;
+            if(bits1RandomX < 1)
+                bits1RandomX = 2;
+            if(bits1RandomY < 1)
+                bits1RandomY = 2;
+        } while ((bits1RandomX>=LINES/2-6 && bits1RandomX<=LINES/2+5) && (bits1RandomY>=COLS/2-15 && bits1RandomY<=COLS/2+15));
     
-    int ch;
+    if((tail->x>=LINES/2-6 && tail->x<=LINES/2+5) && (tail->y>=COLS/2-15 && tail->y<=COLS/2+15))
+        do {
+            bits2RandomX = rand()%LINES - 5;
+            bits2RandomY = rand()%COLS - 1;
+            if(bits2RandomX < 1)
+                bits2RandomX = 2;
+            if(bits2RandomY < 1)
+                bits2RandomY = 2;
+        } while ((bits2RandomX>=LINES/2-6 && bits2RandomX<=LINES/2+5) && (bits2RandomY>=COLS/2-15 && bits2RandomY<=COLS/2+15));
+
+    generateBits(bits1, bits1RandomX, bits1RandomY); //start at head of snake
+    generateBits(bits2, bits2RandomX, bits2RandomY); //start at tail of snake
+    
     do {
         //ch = getch();
-        paintBits(BITS_CHAR); //paint bits with BITS_CHAR
+        paintBits(bits1, BITS_CHAR); //paint bits with BITS_CHAR
+        paintBits(bits2, BITS_CHAR);
         refresh();
         usleep(50000);
-        paintBits(' '); //clear bits with ' '
-        advanceBits();
+        paintBits(bits1, ' '); //clear bits with ' '
+        paintBits(bits2, ' ');
+        advanceBits(bits1);
+        advanceBits(bits2);
     } while(getch() != ' ');
     /*while(getch() != KEY_DOWN) {
         paintBits(BITS_CHAR); //paint bits with BITS_CHAR
