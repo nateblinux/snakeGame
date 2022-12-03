@@ -510,6 +510,24 @@ void placeWalls(int difficulty){
 
         refresh();
     }
+
+    if(difficulty == 5){
+        for(int i = 1; i < (2*(LINES / 3)); i++){
+            mvaddch(i, COLS/4, '|');
+            mvaddch(LINES - (i + 3), COLS/4 * 3, '|');
+        }
+
+        for(int i = 6; i < (COLS / 2); i++){
+            mvaddch(2 * LINES / 3, i, '-');
+            mvaddch( LINES / 4, COLS - i, '-');
+        }
+
+         for(int i = (2 * LINES / 5); i < (3*(LINES / 5)); i++){
+            mvaddch(i, COLS/2, '|');
+        }
+
+        refresh();
+    }
 }
 
 //==================================
