@@ -500,12 +500,14 @@ void placeWalls(int difficulty){
     if(difficulty == 4){
         for(int i = 1; i < (2*(LINES / 3)); i++){
             mvaddch(i, COLS/4, '|');
-            mvaddch(LINES - (i + 3), COLS/4 * 3, '|');
+        }
+        for(int i = LINES - 4; i > LINES / 4; i--){
+            mvaddch(i, COLS/4 * 3, '|');
         }
 
         for(int i = 8; i < (COLS / 4); i++){
             mvaddch(2 * LINES / 3, i, '-');
-            mvaddch( LINES / 4, COLS - i, '-');
+            mvaddch((LINES / 3) - 3, COLS - i, '-');
         }
 
         refresh();
@@ -514,7 +516,9 @@ void placeWalls(int difficulty){
     if(difficulty == 5){
         for(int i = 1; i < (2*(LINES / 3)); i++){
             mvaddch(i, COLS/4, '|');
-            mvaddch(LINES - (i + 3), COLS/4 * 3, '|');
+        }
+        for(int i = LINES - 4; i > LINES / 4; i--){
+            mvaddch(i, COLS/4 * 3, '|');
         }
 
         for(int i = 6; i < (COLS / 2); i++){
