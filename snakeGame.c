@@ -17,6 +17,7 @@
 #define HOR_SPEED   200000
 #define JUMP_SPACES 3 // # of spaces to jump
 #define BOOST_DIV 200 // number to divide area of screen by for max boosts
+#define SPEED_SCALING 100 //scaling factor for speed increase with snake len
 
 //death animation
 #define BITS_CHAR  'o'
@@ -247,16 +248,16 @@ void game_loop(int curr_x, int curr_y){
         //slow vertical speed to make vertical speed feel consistent with horizontal speed
         if(jump > 0){
             if(dir == 'u' || dir == 'd')
-                usleep((VERT_SPEED/gameSpeed) / 2200);
+                usleep(((VERT_SPEED/gameSpeed) - ((snake_len / 3) - 1) * SPEED_SCALING) / 2200);
             else
-               usleep((HOR_SPEED/gameSpeed) / 2000);//wait 250ms or .25 sec
+               usleep(((HOR_SPEED/gameSpeed) - ((snake_len / 3) - 1) * SPEED_SCALING) / 2000);//wait 250ms or .25 sec
             jump--;
             food -> loops_alive++; //dont reduce loops alive for food
         }else{//reduce the delay for the jump to .001 sec per loop
             if(dir == 'u' || dir == 'd')
-                usleep(VERT_SPEED/gameSpeed);
+                usleep((VERT_SPEED/gameSpeed) - ((snake_len / 3) - 1) * SPEED_SCALING);
             else
-               usleep(HOR_SPEED/gameSpeed);//wait 250ms or .25 sec
+               usleep((HOR_SPEED/gameSpeed) - ((snake_len / 3) - 1) * SPEED_SCALING);//wait 250ms or .25 sec
         }
 
         //check keystroke
@@ -455,7 +456,7 @@ void placeFood(int collision){
                 food->Y++;
             char_at = mvinch(food->X, food->Y) & A_CHARTEXT;
         }while((char)char_at != ' '); //make sure food does not generate inside the snake
-        food->loops_alive = ((rand()%3) + 9)/(.22 / gameSpeed);// random value from 3 to 9 seconds in loops
+        food->loops_alive = ((rand()%3) + 9)/((HOR_SPEED/gameSpeed) - ((snake_len / 3) - 1) * SPEED_SCALING);// random value from 3 to 9 seconds in loops
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
 }
