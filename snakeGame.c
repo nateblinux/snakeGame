@@ -18,6 +18,7 @@
 #define JUMP_SPACES 3 // # of spaces to jump
 #define BOOST_DIV 200 // number to divide area of screen by for max boosts
 #define SPEED_SCALING 100 //scaling factor for speed increase with snake len
+#define version    "version 4.1"
 
 //death animation
 #define BITS_CHAR  'o'
@@ -191,7 +192,7 @@ int main(){
     tail->prev = NULL;
 
     initscr(); //start curses screen
-    boost = (LINES * COLS) / BOOST_DIV;
+    boost = 12;//(LINES * COLS) / BOOST_DIV; //start with half boost
 
     //check if terminal supports COLORs
     if(has_colors() == FALSE)
@@ -271,6 +272,7 @@ void game_loop(int curr_x, int curr_y){
             else
                usleep((HOR_SPEED/gameSpeed) - ((snake_len / 3) - 1) * SPEED_SCALING);//wait 250ms or .25 sec
         }
+        
 
         //check keystroke
         switch(getch()){
@@ -309,7 +311,7 @@ void game_loop(int curr_x, int curr_y){
                 break;
             case ' ':
                 optionMenu(1); //1 because we're in game
-                mvaddch(food->X, food->Y, FOOD_CHAR); //if it's behind the menu, then it disappears, so redraw
+                placeFood();//if food is behind the menu, it disappears, so redraw
                 break;
             default:
                 flushinp();
@@ -334,7 +336,40 @@ void game_loop(int curr_x, int curr_y){
                 break;  
         }
 
-        
+        //DRAW GAME STATS
+        attron(COLOR_PAIR(3));
+        attron(A_BOLD);
+        mvprintw(LINES-2, 2, "Trophy Value: %03d", food->loops_alive);
+        mvprintw(LINES-1, 2, "Score: %05d", gamerScore);
+
+        mvprintw(LINES-2, COLS/2-18, "Boost: [");
+        attroff(COLOR_PAIR(3));
+        attroff(A_BOLD);
+        mvprintw(LINES-2, COLS/2-10, "                         ");
+        if(boost<=24) {
+            if(boost<=5) {
+                attron(COLOR_PAIR(5));
+                attron(A_BLINK);
+            }
+            else if (boost<=10)
+                attron(COLOR_PAIR(1));
+            else attron(COLOR_PAIR(2));
+                
+            for(int i=0; i<boost; i++) {
+                mvaddch(LINES-2, COLS/2+(i-10), '#');
+            }
+        }
+        else mvprintw(LINES-2, COLS/2+1, "%d", boost);
+        attroff(COLOR_PAIR(1));
+        attroff(COLOR_PAIR(2));
+        attroff(COLOR_PAIR(5));
+        attroff(A_BLINK);
+        attron(COLOR_PAIR(3));
+        attron(A_BOLD);
+        mvaddch(LINES-2, COLS/2+13, ']');
+        attroff(COLOR_PAIR(3));
+
+        //DRAW SNAKE
         attron(COLOR_PAIR(1)); //SNAKE COLOR ON
         //delete snake head by replaceing character with a space
         if(addch <= 0){
@@ -345,7 +380,7 @@ void game_loop(int curr_x, int curr_y){
         }
         mvaddch(head->x, head->y, SNAKE_CHAR);
         
-        if(DetectCollision(curr_x, curr_y) == 1){
+        if((DetectCollision(curr_x, curr_y) == 1) || (boost==0)) {
             game_over();
             endGame = 1;
         }
@@ -354,11 +389,16 @@ void game_loop(int curr_x, int curr_y){
             snake_len += food->new_len;
             gamerScore += food->loops_alive; //score decreases as loops_alive decreases
             food->loops_alive = 0;
-            if(boost < (LINES * COLS) / BOOST_DIV){ //cap the number of boosts able to be collected
-                boost+=3;
+            if(boost < 24) { //cap the number of boosts able to be collected
+                if(boost + 3 < 24)
+                    boost+=3;
+                else if(boost + 2 < 24)
+                    boost+=2;
+                else if(boost + 1 < 24)
+                    boost+=1;
+                //else maxed out, no boost!
             }
         }
-        
         
         //create new head
         new_head(curr_x, curr_y);
@@ -367,44 +407,8 @@ void game_loop(int curr_x, int curr_y){
 
         attroff(COLOR_PAIR(1)); //SNAKE COLOR OFF
 
-        //GAME STATS
-        attron(COLOR_PAIR(3));
-        attron(A_BOLD);
-        mvprintw(LINES-2, 2, "Trophy Value: %03d", food->loops_alive);
-        mvprintw(LINES-1, 2, "Score: %05d", gamerScore);
-
-        mvprintw(LINES-2, COLS/2-17, "Boost: [");
-        attroff(COLOR_PAIR(3));
-        attroff(A_BOLD);
-        mvprintw(LINES-2, COLS/2-6, "                         ");
-        if(boost<=25) {
-            if(boost<=5) {
-                attron(COLOR_PAIR(5));
-                attron(A_BLINK);
-            }
-            else if (boost<=10)
-                attron(COLOR_PAIR(1));
-            else attron(COLOR_PAIR(2));
-                
-            for(int i=1; i<=boost; i++) {
-                mvaddch(LINES-2, COLS/2+(i-10), '#');
-                if (i==boost) {
-                    attroff(COLOR_PAIR(1));
-                    attroff(COLOR_PAIR(2));
-                    attroff(COLOR_PAIR(5));
-                    attroff(A_BLINK);
-                    attron(COLOR_PAIR(3));
-                    attron(A_BOLD);
-                    mvaddch(LINES-2, COLS/2+13, ']');
-                }
-            }
-        }
-        else mvprintw(LINES-2, COLS/2+1, "%d", boost);
-        attroff(COLOR_PAIR(3));
-        
-        attron(COLOR_PAIR(6)); //FOOD COLOR
         placeFood();
-        attroff(COLOR_PAIR(6));
+        
         attroff(A_BOLD);
 
         if(snake_len >= LINES+COLS){
@@ -476,6 +480,7 @@ int DetectCollision(int new_x, int new_y) {
 }
 
 void placeFood(int collision){
+    attron(COLOR_PAIR(6)); //FOOD COLOR
     if(food->loops_alive > 0){//reduce the number of loops that the food is alive
         food->loops_alive--;
     }else{
@@ -497,6 +502,7 @@ void placeFood(int collision){
         food->loops_alive = ((rand()%3) + 9)/(.22 / gameSpeed);// random value from 3 to 9 seconds in loops
         mvaddch(food->X, food->Y, FOOD_CHAR);
     }
+    attroff(COLOR_PAIR(6));
 }
 
 //add a new head to the linked list
@@ -752,7 +758,7 @@ void printHighScoreMenu() {
 
 void printHighScoreOptions(int position) {
     //init_pair(4, COLOR_GREEN, COLOR_BLACK);
-    attron(COLOR_PAIR(3));
+    attron(COLOR_PAIR(1));
     char message1[] = "(Press enter key)";
     char message2[] = "(Press UP to enter name)";
     char message[13];
@@ -802,7 +808,7 @@ void printHighScoreOptions(int position) {
             curs_set(0);
             break;
     }
-    attroff(COLOR_PAIR(3));
+    attroff(COLOR_PAIR(1));
 
 }
 
@@ -1024,7 +1030,8 @@ void printMenu() {
 
 void printOptions(int position, int inGame) {
     //init_pair(4, COLOR_GREEN, COLOR_BLACK);
-    attron(COLOR_PAIR(2));
+    attron(COLOR_PAIR(1));
+    //attron(A_BOLD);
     char message1[] = "Start Game!";
     char message2[] = "Resume Game!";
     char message[13];
@@ -1078,7 +1085,8 @@ void printOptions(int position, int inGame) {
             mvprintw(LINES/2+4, COLS/2-2, "Exit");
             break;
     }
-    attroff(COLOR_PAIR(2));
+    attroff(A_BOLD);
+    attroff(COLOR_PAIR(1));
 
 }
 
@@ -1161,7 +1169,7 @@ void advanceBits(struct bit *bits) {
         switch(bits[i].dir) {
             case 0: //up
                 char_at = mvinch(bits[i].x-1, bits[i].y) & A_CHARTEXT;
-                if (char_at == '-' || char_at == '=') {
+                if (char_at == '-' || char_at == '=' || char_at == '*') {
                     bits[i].dir = 4;    
                     bits[i].x += 1;
                 } else bits[i].x -= 1;
@@ -1172,7 +1180,8 @@ void advanceBits(struct bit *bits) {
                     bits[i].dir = 7;    
                     bits[i].x -= 1;
                     bits[i].y -= 1;
-                } else if (char_at == '-' || char_at == '=') {
+                } 
+                if (char_at == '-' || char_at == '=') {
                     bits[i].dir = 3;
                     bits[i].x += 1;
                     bits[i].y += 1;
@@ -1183,7 +1192,7 @@ void advanceBits(struct bit *bits) {
                 break;
             case 2: //right
                 char_at = mvinch(bits[i].x, bits[i].y+1) & A_CHARTEXT;
-                if (char_at == '|' || char_at == '*') {
+                if (char_at == '|' || char_at == '*' || char_at == '=') {
                     bits[i].dir = 6;
                     bits[i].y -= 1;
                 } else bits[i].y += 1;
@@ -1194,7 +1203,8 @@ void advanceBits(struct bit *bits) {
                     bits[i].dir = 5;
                     bits[i].x += 1;
                     bits[i].y -= 1;
-                } else if (char_at == '-' || char_at == '=') {
+                } 
+                if (char_at == '-' || char_at == '=') {
                     bits[i].dir = 1;
                     bits[i].x -= 1;
                     bits[i].y += 1;
@@ -1205,7 +1215,7 @@ void advanceBits(struct bit *bits) {
                 break;
             case 4: //down
                 char_at = mvinch(bits[i].x+1, bits[i].y) & A_CHARTEXT;
-                if (char_at == '-' || char_at == '=') {
+                if (char_at == '-' || char_at == '=' || char_at == '*') {
                     bits[i].dir = 0;
                     bits[i].x -= 1;
                 } else bits[i].x += 1;
@@ -1216,7 +1226,8 @@ void advanceBits(struct bit *bits) {
                     bits[i].dir = 3;
                     bits[i].x += 1;
                     bits[i].y += 1;
-                } else if (char_at == '-' || char_at == '=') {
+                } 
+                if (char_at == '-' || char_at == '=') {
                     bits[i].dir = 7;
                     bits[i].x -= 1;
                     bits[i].y -= 1;
@@ -1227,7 +1238,7 @@ void advanceBits(struct bit *bits) {
                 break;
             case 6: //left
                 char_at = mvinch(bits[i].x, bits[i].y-1) & A_CHARTEXT;
-                if (char_at == '|' || char_at == '*') {
+                if (char_at == '|' || char_at == '*' || char_at == '=') {
                     bits[i].dir = 2;
                     bits[i].y += 1;
                 } else bits[i].y -= 1;
@@ -1238,7 +1249,8 @@ void advanceBits(struct bit *bits) {
                     bits[i].dir = 1;
                     bits[i].x -= 1;
                     bits[i].y += 1;
-                } else if (char_at == '-' || char_at == '=') {
+                } 
+                if (char_at == '-' || char_at == '=') {
                     bits[i].dir = 5;
                     bits[i].x += 1;
                     bits[i].y -= 1;
@@ -1368,12 +1380,25 @@ void DeathAnimation(){
 //===========================
 //Snake Intro Splash Screen
 //===========================
-/*void animateSplashScreen() {
-
-}*/
+void animateSplashScreen() { //DOUBT WE'RE GONNA DO THIS
+    int border=0;
+    char ch;
+    for (int i=0; i<31; i++) {
+            if (ch == ' ')
+                break;
+            if(i<=20) {
+                attron(COLOR_PAIR(1));
+                mvaddch(LINES/2-4, (COLS/2+2)-border, '*');
+                mvaddch(LINES/2+5, (COLS/2+2)+border++, '*');
+            }
+            attroff(COLOR_PAIR(1));    
+            usleep(50000);
+            refresh();
+        }
+    
+}
 
 void introSplashScreen() {
-    char version[] = "version 4.0";
     char letterS[] = 
     "  .d8888b.   d88P  Y88b  Y88b.        \"Y888b.        \"Y88b.        \"888  Y88b  d88P   \"Y8888P\"  ";
     char letterN[] =
@@ -1420,15 +1445,18 @@ void introSplashScreen() {
     attron(A_BLINK);
     mvprintw(LINES/2+8, COLS/2-11, "(Press Space to Continue)");
     playAnimation=0;
+    attroff(A_BLINK);
      
     char ch;
     int exitSplash=0;
+    border=0;
+    sideBorder=0;
     while(!exitSplash) {
+        //animateSplashScreen();
         ch = getch();
         if (ch == ' ')
             exitSplash=1;
     }
     attroff(COLOR_PAIR(5));
-    attroff(A_BLINK);
     clearMenu();
 }
