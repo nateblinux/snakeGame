@@ -146,6 +146,8 @@ void resetHighScoreArray();
 //randomly place walls based on difficulty
 void placeWalls(int difficulty);
 
+void introSplashScreen();
+
 
 //global head and tail of snake
 struct snake_char * head = NULL;
@@ -164,6 +166,7 @@ int newHighScore=0;
 int winCondition=0; //if 0 = dead, no high score
                     //if 1 = dead, new high score
                     //if 2 = continue to next level
+int playAnimation=1;
 
 //int continueGame=0;
 //WINDOW *score_win; //we're not doing windows.
@@ -203,6 +206,14 @@ int main(){
     nodelay(stdscr, TRUE);
     curs_set(0); //hide the cursor if allowed;
     start_color(); //start colors
+
+    //setup colors
+    init_pair(1, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(2, COLOR_GREEN, COLOR_BLACK); 
+    init_pair(3, COLOR_CYAN, COLOR_BLACK); 
+    init_pair(4, COLOR_BLUE, COLOR_BLACK);
+    init_pair(5, COLOR_RED, COLOR_BLACK);
+    init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
     
     //draw the main screen
     start_screen();
@@ -210,7 +221,8 @@ int main(){
     //Get high scores from highscores.txt
     importHighScores();
     sortHighScores();
-
+    if(playAnimation==1)
+        introSplashScreen();
     //open menu system
     optionMenu(0); //0 because game has not begun
 
@@ -219,22 +231,22 @@ int main(){
     //main game loop
     game_loop(curr_x, curr_y);
     
-    attroff(COLOR_PAIR(1)); //turn off COLORs 
+    //attroff(COLOR_PAIR(1)); //turn off COLORs 
     endwin(); //end curses
     return 0;
 }
 
 void start_screen(){
      //COLOR pair for border
-    init_pair(2, COLOR_CYAN, COLOR_BLACK);
+    //init_pair(2, COLOR_CYAN, COLOR_BLACK);
 
 
     //create border (window, left side, right side, top, bottom, corner, corner, corner, corner) and apply COLOR
-    attron(COLOR_PAIR(2));
+    attron(COLOR_PAIR(4));
     border('|', '|', '-', '-', '+', '+', '+', '+');
     for(int i=1; i<COLS-1; i++) //make another border right above the bottom border (for score and status)
         mvaddch(LINES-3, i, '-');
-    attroff(COLOR_PAIR(2));
+    attroff(COLOR_PAIR(4));
 }
 
 void game_loop(int curr_x, int curr_y){
@@ -323,7 +335,7 @@ void game_loop(int curr_x, int curr_y){
         }
 
         
-        
+        attron(COLOR_PAIR(1)); //SNAKE COLOR ON
         //delete snake head by replaceing character with a space
         if(addch <= 0){
             mvaddch(tail->x, tail->y, ' ');
@@ -352,25 +364,49 @@ void game_loop(int curr_x, int curr_y){
         new_head(curr_x, curr_y);
         //redraw head in new location
         mvaddch(head->x, head->y, HEAD_CHAR);
-        
+
+        attroff(COLOR_PAIR(1)); //SNAKE COLOR OFF
+
         //GAME STATS
+        attron(COLOR_PAIR(3));
+        attron(A_BOLD);
         mvprintw(LINES-2, 2, "Trophy Value: %03d", food->loops_alive);
-        mvprintw(LINES-2, COLS/2-6, "Boost:");
-        mvprintw(LINES-2, COLS/2, "                     ");
-        if(boost<=20) {
-            //if(boost<=5)
-                //attron(COLOR_PAIR(5));
-            for(int i=1; i<=boost; i++)
-                mvaddch(LINES-2, COLS/2+i, '#');
-            //if(boost<=5)
-                //attroff(COLOR_PAIR(5));
+        mvprintw(LINES-1, 2, "Score: %05d", gamerScore);
+
+        mvprintw(LINES-2, COLS/2-17, "Boost: [");
+        attroff(COLOR_PAIR(3));
+        attroff(A_BOLD);
+        mvprintw(LINES-2, COLS/2-6, "                         ");
+        if(boost<=25) {
+            if(boost<=5) {
+                attron(COLOR_PAIR(5));
+                attron(A_BLINK);
+            }
+            else if (boost<=10)
+                attron(COLOR_PAIR(1));
+            else attron(COLOR_PAIR(2));
+                
+            for(int i=1; i<=boost; i++) {
+                mvaddch(LINES-2, COLS/2+(i-10), '#');
+                if (i==boost) {
+                    attroff(COLOR_PAIR(1));
+                    attroff(COLOR_PAIR(2));
+                    attroff(COLOR_PAIR(5));
+                    attroff(A_BLINK);
+                    attron(COLOR_PAIR(3));
+                    attron(A_BOLD);
+                    mvaddch(LINES-2, COLS/2+13, ']');
+                }
+            }
         }
         else mvprintw(LINES-2, COLS/2+1, "%d", boost);
-        mvprintw(LINES-1, 2, "Score: %05d", gamerScore);
-        //refresh the window to apply changes
+        attroff(COLOR_PAIR(3));
+        
+        attron(COLOR_PAIR(6)); //FOOD COLOR
         placeFood();
-        //mvprintw(LINES-6, 1, "xDf = %d", xDifference);
-        //mvprintw(LINES-5, 1, "yDf = %d", yDifference);
+        attroff(COLOR_PAIR(6));
+        attroff(A_BOLD);
+
         if(snake_len >= LINES+COLS){
             win();
             endGame = 1;
@@ -386,14 +422,14 @@ void init_snake(int * curr_x, int * curr_y){
     //WINDOW * scrn = newwin(LINES - 2, COLS - 2, 1,1);
 
     //create snake COLOR pair
-    init_pair(1, COLOR_GREEN, COLOR_BLACK);
+    //init_pair(1, COLOR_GREEN, COLOR_BLACK);
 
     //initialize the x and y coordinates of snake head
     *curr_x = LINES / 2;
     *curr_y = ((COLS / 2)-INIT_LEN) - 10; //snake head dead center shifted 10 for levels
 
     //turn on COLOR pair
-    //attron(COLOR_PAIR(1));
+    attron(COLOR_PAIR(1));
 
 
     //initialize head and tail of snake
@@ -419,6 +455,8 @@ void init_snake(int * curr_x, int * curr_y){
         next = next->next;
     }
     mvaddch(next->x, next->y, HEAD_CHAR);
+
+    attroff(COLOR_PAIR(1));
     
     //return window with initial config
     //return scrn;
@@ -443,7 +481,7 @@ void placeFood(int collision){
     }else{
         int char_at = mvinch(food->X, food->Y) & A_CHARTEXT;
         if((char)char_at == SNAKE_CHAR || (char)char_at == HEAD_CHAR)
-            mvaddch(food->X, food->Y, SNAKE_CHAR);
+            mvaddch(food->X, food->Y, SNAKE_CHAR); //CHANGE COLOR HERE for consistent snake color
         else
             mvaddch(food->X, food->Y, ' ');
         food->new_len=(rand()%5)+1; //changed to length 5
@@ -665,21 +703,24 @@ void resetHighScoreArray() {
 //=================================
 
 void clearMenu() {
-    mvprintw(LINES/2-7, COLS/2-20, "                                        ");
-    mvprintw(LINES/2-6, COLS/2-20, "                                        ");
-    mvprintw(LINES/2-5, COLS/2-20, "                                        ");
-    mvprintw(LINES/2-4, COLS/2-20, "                                        ");
-    mvprintw(LINES/2-3, COLS/2-20, "                                        ");
-    mvprintw(LINES/2-2, COLS/2-20, "                                        ");
-    mvprintw(LINES/2-1, COLS/2-20, "                                        ");
-    mvprintw(LINES/2,   COLS/2-20, "                                        ");
-    mvprintw(LINES/2+1, COLS/2-20, "                                        ");
-    mvprintw(LINES/2+2, COLS/2-20, "                                        ");
-    mvprintw(LINES/2+3, COLS/2-20, "                                        ");
-    mvprintw(LINES/2+4, COLS/2-20, "                                        ");
-    mvprintw(LINES/2+5, COLS/2-20, "                                        ");
-    mvprintw(LINES/2+6, COLS/2-20, "                                        ");
-    mvprintw(LINES/2+7, COLS/2-20, "                                        ");
+    mvprintw(LINES/2-7, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2-6, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2-5, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2-4, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2-3, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2-2, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2-1, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2,   COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2+1, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2+2, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2+3, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2+4, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2+5, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2+6, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2+7, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2+8, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2+9, COLS/2-31, "                                                                 ");
+    mvprintw(LINES/2+10, COLS/2-31, "                                                                 ");
 }
 
 
@@ -689,7 +730,7 @@ void clearMenu() {
 //=================================
 
 void printHighScoreMenu() { 
-    init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    //init_pair(3, COLOR_BLUE, COLOR_BLACK);
     attron(COLOR_PAIR(3));
     mvprintw(LINES/2-7, COLS/2-20, "========================================");
     mvprintw(LINES/2-6, COLS/2-20, "*             HIGH SCORES              *");
@@ -706,11 +747,12 @@ void printHighScoreMenu() {
     mvprintw(LINES/2+5, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+6, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+7, COLS/2-20, "========================================");
+    attroff(COLOR_PAIR(3));
 }
 
 void printHighScoreOptions(int position) {
-    init_pair(4, COLOR_GREEN, COLOR_BLACK);
-    attron(COLOR_PAIR(4));
+    //init_pair(4, COLOR_GREEN, COLOR_BLACK);
+    attron(COLOR_PAIR(3));
     char message1[] = "(Press enter key)";
     char message2[] = "(Press UP to enter name)";
     char message[13];
@@ -760,6 +802,7 @@ void printHighScoreOptions(int position) {
             curs_set(0);
             break;
     }
+    attroff(COLOR_PAIR(3));
 
 }
 
@@ -794,7 +837,7 @@ void highScoreMenu() { //if 1, newHighScore allows entry
 //GAME OVER MENU
 //=================================
 void printScoreMenu(int won) { //won = 0: end of game, won=1: next level
-    init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    //init_pair(3, COLOR_BLUE, COLOR_BLACK);
     attron(COLOR_PAIR(3));
     mvprintw(LINES/2-6, COLS/2-15, "*============================*");
     mvprintw(LINES/2-5, COLS/2-15, "*          GAME OVER!        *");
@@ -808,13 +851,13 @@ void printScoreMenu(int won) { //won = 0: end of game, won=1: next level
     mvprintw(LINES/2+3, COLS/2-15, "*                            *");
     mvprintw(LINES/2+4, COLS/2-15, "*                            *");
     mvprintw(LINES/2+5, COLS/2-15, "*============================*");
-    //attroff(COLOR_PAIR(3));
+    attroff(COLOR_PAIR(3));
 }
 
 
 void printScoreOptions(int position) {
-    //init_pair(4, COLOR_GREEN, COLOR_BLACK); //is this global?
-    attron(COLOR_PAIR(4));
+    //init_pair(4, COLOR_RED, COLOR_BLACK);
+    attron(COLOR_PAIR(1));
     char optionMsg0[] = "View High Scores";
     char optionMsg1[] = "Save Score!";
     char optionMsg2[] = "Next Level!";
@@ -910,6 +953,7 @@ void printScoreOptions(int position) {
             attroff(A_BLINK);
             break;
     }
+    attroff(COLOR_PAIR(1));
 }
 
 void scoreMenu() {
@@ -961,8 +1005,8 @@ void scoreMenu() {
 //=================================
 
 void printMenu() {
-    init_pair(3, COLOR_BLUE, COLOR_BLACK);
-    attron(COLOR_PAIR(3));
+    //init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    attron(COLOR_PAIR(4));
     mvprintw(LINES/2-5, COLS/2-20, "========================================");
     mvprintw(LINES/2-4, COLS/2-20, "*           Welcome to Snake           *");
     mvprintw(LINES/2-3, COLS/2-20, "*                                      *");
@@ -975,12 +1019,12 @@ void printMenu() {
     mvprintw(LINES/2+4, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+5, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+6, COLS/2-20, "========================================");
-    //attroff(COLOR_PAIR(3));
+    attroff(COLOR_PAIR(4));
 }
 
 void printOptions(int position, int inGame) {
-    init_pair(4, COLOR_GREEN, COLOR_BLACK);
-    attron(COLOR_PAIR(4));
+    //init_pair(4, COLOR_GREEN, COLOR_BLACK);
+    attron(COLOR_PAIR(2));
     char message1[] = "Start Game!";
     char message2[] = "Resume Game!";
     char message[13];
@@ -1034,7 +1078,7 @@ void printOptions(int position, int inGame) {
             mvprintw(LINES/2+4, COLS/2-2, "Exit");
             break;
     }
-    //attroff(COLOR_PAIR(4));
+    attroff(COLOR_PAIR(2));
 
 }
 
@@ -1102,13 +1146,13 @@ void generateBits(struct bit *bits, int x, int y){
 }
 
 void paintBits(struct bit *bits, char ch){
-    init_pair(0, COLOR_RED, COLOR_BLACK);
-    init_pair(1, COLOR_YELLOW, COLOR_BLACK);
-    //attron(COLOR_PAIR(5));
+    //For next level, we're gonna do color changing balls
+    attron(COLOR_PAIR(1));
     for(int i=0; i<8; i++) {
-        attron(COLOR_PAIR(i%2)); //alternate 0 and 1
+        //attron(COLOR_PAIR(rand()%6+1));
         mvaddch(bits[i].x, bits[i].y, ch);
     }
+    attroff(COLOR_PAIR(1));
 }
 
 void advanceBits(struct bit *bits) {
@@ -1209,8 +1253,8 @@ void advanceBits(struct bit *bits) {
 
 void DeathAnimation(){
     struct snake_char * erase = (struct snake_char *)malloc(sizeof(struct snake_char));
-    init_pair(5, COLOR_RED, COLOR_BLACK);
-    init_pair(6, COLOR_YELLOW, COLOR_BLACK);
+    //init_pair(5, COLOR_RED, COLOR_BLACK);
+    //init_pair(6, COLOR_YELLOW, COLOR_BLACK);
     
     //RED AND YELLOW FLASHING BEFORE DEATH
     for(int i=0; i<2; i++) {
@@ -1228,7 +1272,7 @@ void DeathAnimation(){
         usleep(140000);
 
         erase = head;
-        attron(COLOR_PAIR(6));
+        attron(COLOR_PAIR(1));
         mvaddch(erase->x, erase->y, HEAD_CHAR);
         erase=erase->prev;
         while(erase->prev != NULL) {
@@ -1239,6 +1283,8 @@ void DeathAnimation(){
         refresh();
         usleep(140000);
     }
+    attroff(COLOR_PAIR(1));
+    attroff(COLOR_PAIR(5));
     
     //erase snake from screen
     erase = head;
@@ -1316,5 +1362,73 @@ void DeathAnimation(){
         paintBits(' '); //clear bits with ' '
         advanceBits();
     }*/
+    clearMenu();
+}
+
+//===========================
+//Snake Intro Splash Screen
+//===========================
+/*void animateSplashScreen() {
+
+}*/
+
+void introSplashScreen() {
+    char version[] = "version 4.0";
+    char letterS[] = 
+    "  .d8888b.   d88P  Y88b  Y88b.        \"Y888b.        \"Y88b.        \"888  Y88b  d88P   \"Y8888P\"  ";
+    char letterN[] =
+    "888b    888 8888b   888 88888b  888 888Y88b 888 888 Y88b888 888  Y88888 888   Y8888 888    Y888 ";
+    char letterA[] =
+    "       d8888      d88888     d88P888    d88P 888   d88P  888  d88P   888 d8888888888d88P     888";
+    char letterK[] =
+    "888    d8P  888   d8P   888  d8P    888d88K     8888888b    888  Y88b   888   Y88b  888    Y88b ";
+    char letterE[] =
+    "8888888888  888         888         8888888     888         888         888         8888888888  ";
+    int current_line = LINES/2-4;
+    int current_col = COLS/2-30;
+    int border=0, sideBorder=0, printVersion=0;
+    attron(COLOR_PAIR(5));
+    for (int i=0; i<strlen(letterS); i++) {
+        if(i%12==0) {
+            current_line++;
+            current_col = COLS/2-30;
+        }
+        mvaddch(current_line, current_col, letterS[i]);
+        mvaddch(current_line, current_col+13, letterN[i]);
+        mvaddch(current_line, current_col+26, letterA[i]);
+        mvaddch(current_line, current_col+39, letterK[i]);
+        mvaddch(current_line, current_col+52, letterE[i]);
+        current_col++;
+
+        if ((i>=strlen(letterS)/2) && border<=33) {
+            mvaddch(LINES/2-4, (COLS/2+2)-border,'*');
+            mvaddch(LINES/2-4, COLS/2+border,'*');
+            mvaddch(LINES/2+5, (COLS/2+2)-border,'*');
+            mvaddch(LINES/2+5, COLS/2+border++,'*');
+        }
+        if (i>=strlen(letterS)-5) {
+            mvaddch(LINES/2-sideBorder, COLS/2-31,'*');
+            mvaddch(LINES/2+sideBorder, COLS/2-31,'*');
+            mvaddch(LINES/2-sideBorder, COLS/2+33,'*');
+            mvaddch(LINES/2+sideBorder++, COLS/2+33,'*');
+        }
+        if (i>=strlen(letterS)-11)
+            mvaddch(LINES/2+6, COLS/2+23+printVersion, version[printVersion++]);
+        refresh();
+        usleep(20000);
+    }
+    attron(A_BLINK);
+    mvprintw(LINES/2+8, COLS/2-11, "(Press Space to Continue)");
+    playAnimation=0;
+     
+    char ch;
+    int exitSplash=0;
+    while(!exitSplash) {
+        ch = getch();
+        if (ch == ' ')
+            exitSplash=1;
+    }
+    attroff(COLOR_PAIR(5));
+    attroff(A_BLINK);
     clearMenu();
 }
