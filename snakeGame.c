@@ -956,18 +956,20 @@ void printScoreOptions(int position) { //we need
     char levelMessage3[] = "You made it to Level 5!";
     char levelMessage4[] = "YOU WON!!! Congratulations!";
     char levelMessage[23];
-
+    
+    int scorePosition;
+    int lowscore;
     switch(winCondition) {
         case 0: //DEATH WITH NO HIGH SCORE
             //the following check is so, after entering score, they don't get Msg5 notice
-            int lowscore = hiScoreArray[numHighScoreRecords-1].score;
+            lowscore = hiScoreArray[numHighScoreRecords-1].score;
             if(lowscore>gamerScore)
                 strcpy(highScoreMsg, highScoreMsg5);
             else strcpy(highScoreMsg, ""); 
             strcpy(optionMsg, optionMsg0);
             break;
         case 1: //DEATH WITH NEW HIGH SCORE
-            int scorePosition;
+            
             for(int i=0; i<numHighScoreRecords; i++)
                 if(hiScoreArray[i].name == "")
                     scorePosition = i;
