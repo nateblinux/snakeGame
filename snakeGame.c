@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <wchar.h>
 
 #define INIT_LEN 3 //inital length of snake always 2 or greater
 #define SNAKE_CHAR 'o'
@@ -18,7 +17,8 @@
 #define JUMP_SPACES 3 // # of spaces to jump
 #define BOOST_DIV 200 // number to divide area of screen by for max boosts
 #define SPEED_SCALING 100 //scaling factor for speed increase with snake len
-#define version    "version 4.1"
+#define version    "version 4.2"
+#define TROPHY_REQUIREMENT 2
 
 //death animation
 #define BITS_CHAR  'o'
@@ -144,10 +144,12 @@ void sortHighScores();
 void resetHighScoreArray();
 //end high score menu
 
-//randomly place walls based on difficulty
-void placeWalls(int difficulty);
+//randomly place walls based on LEVEL
+void placeWalls();
 
 void introSplashScreen();
+
+void clearGameBoard();
 
 
 //global head and tail of snake
@@ -155,8 +157,9 @@ struct snake_char * head = NULL;
 struct snake_char * tail = NULL;
 struct trophy * food = NULL;
 int gameSpeed = 3; //initial speed
-int difficulty = 1; //intiial difficulty
 int gamerScore = 0;
+int trophyCount = 0;
+int userLevel = 1; //this WAS difficulty
 int endGame = 0;
 int snake_len;
 int boost;
@@ -167,10 +170,8 @@ int newHighScore=0;
 int winCondition=0; //if 0 = dead, no high score
                     //if 1 = dead, new high score
                     //if 2 = continue to next level
+int wonWholeGame=0; //if 1 = game is beat
 int playAnimation=1;
-
-//int continueGame=0;
-//WINDOW *score_win; //we're not doing windows.
 
 int main(){
     srand ( time(NULL) );//seed rand with current time to prevent same sequence of numbers
@@ -225,8 +226,9 @@ int main(){
     if(playAnimation==1)
         introSplashScreen();
     //open menu system
-    optionMenu(0); //0 because game has not begun
-
+    if(winCondition<2)
+        optionMenu(0); //0 because game has not begun
+    winCondition=0; //reset winCondition after our check
     //create window for snake to live in sitting inside border
     init_snake(&curr_x, &curr_y);
     //main game loop
@@ -336,6 +338,27 @@ void game_loop(int curr_x, int curr_y){
                 break;  
         }
 
+        if((DetectCollision(curr_x, curr_y) == 1) || (boost==0)) {
+            game_over();
+            endGame = 1;
+        }
+        if(DetectCollision(curr_x, curr_y) == 2){
+            addch = food->new_len;
+            snake_len += food->new_len;
+            gamerScore += food->loops_alive; //score decreases as loops_alive decreases
+            food->loops_alive = 0;
+            trophyCount++;
+            if(boost < 24) { //cap the number of boosts able to be collected
+                if(boost + 3 < 24)
+                    boost+=3;
+                else if(boost + 2 < 24)
+                    boost+=2;
+                else if(boost + 1 < 24)
+                    boost+=1;
+                //else maxed out, no boost!
+            }
+        }
+
         //DRAW GAME STATS
         attron(COLOR_PAIR(3));
         attron(A_BOLD);
@@ -367,7 +390,13 @@ void game_loop(int curr_x, int curr_y){
         attron(COLOR_PAIR(3));
         attron(A_BOLD);
         mvaddch(LINES-2, COLS/2+13, ']');
+        mvprintw(LINES-2, COLS-24, "                        ");
+        mvprintw(LINES-2, COLS-4, "/%d", TROPHY_REQUIREMENT);
+        mvprintw(LINES-2, COLS-(14+TROPHY_REQUIREMENT), "Trophy's:");
+        for (int i=0; i<trophyCount; i++)
+            mvaddch(LINES-2, COLS-5-i, '*');
         attroff(COLOR_PAIR(3));
+        
 
         //DRAW SNAKE
         attron(COLOR_PAIR(1)); //SNAKE COLOR ON
@@ -380,26 +409,6 @@ void game_loop(int curr_x, int curr_y){
         }
         mvaddch(head->x, head->y, SNAKE_CHAR);
         
-        if((DetectCollision(curr_x, curr_y) == 1) || (boost==0)) {
-            game_over();
-            endGame = 1;
-        }
-        if(DetectCollision(curr_x, curr_y) == 2){
-            addch = food->new_len;
-            snake_len += food->new_len;
-            gamerScore += food->loops_alive; //score decreases as loops_alive decreases
-            food->loops_alive = 0;
-            if(boost < 24) { //cap the number of boosts able to be collected
-                if(boost + 3 < 24)
-                    boost+=3;
-                else if(boost + 2 < 24)
-                    boost+=2;
-                else if(boost + 1 < 24)
-                    boost+=1;
-                //else maxed out, no boost!
-            }
-        }
-        
         //create new head
         new_head(curr_x, curr_y);
         //redraw head in new location
@@ -411,12 +420,14 @@ void game_loop(int curr_x, int curr_y){
         
         attroff(A_BOLD);
 
-        if(snake_len >= LINES+COLS){
+        placeWalls();
+
+        refresh();
+        if(trophyCount == TROPHY_REQUIREMENT){
+            mvaddch(food->X, food->Y, ' '); //clear food
             win();
             endGame = 1;
         }
-        refresh();
-        
     }
 }
 
@@ -532,13 +543,19 @@ void del_tail(){
 void game_over(){
     DeathAnimation();
     checkGamerScore(); 
-    scoreMenu();
+    scoreMenu(); //remember we have WINCONDITION
     clear();
     refresh();
 }
 
 void win(){
-    scoreMenu();
+    winCondition=2; //because we won
+    if(++userLevel>5) {
+        wonWholeGame=1;
+        clearGameBoard();
+    }
+    DeathAnimation(); //this will be WINCONDITION animation
+    scoreMenu(); //using WINCONDITION
     clear();
     refresh();
 }
@@ -547,55 +564,62 @@ void win(){
 //CREATE LEVELS
 //==================================
 
-void placeWalls(int difficulty){
-    if(difficulty == 2){
-        for(int i = (LINES / 3); i < (2*(LINES / 3)); i++){
-            mvaddch(i, COLS/2, '|');
-        }
-        refresh();
+void placeWalls(){
+    attron(A_BOLD);
+    switch(userLevel) {
+        case 2:
+            attron(COLOR_PAIR(2));
+            for(int i = (LINES / 3); i < (2*(LINES / 3)); i++){
+                mvaddch(i, COLS/2, '|');
+            }
+            refresh();
+            attroff(COLOR_PAIR(2));
+            break;
+        case 3:
+            attron(COLOR_PAIR(3));
+            for(int i = 1; i < (2*(LINES / 3)); i++){
+                mvaddch(i, COLS/4, '|');
+                mvaddch(LINES - (i + 3), COLS/4 * 3, '|');
+            }
+            attroff(COLOR_PAIR(3));
+            break;
+        case 4:
+            attron(COLOR_PAIR(4));
+            for(int i = 1; i < (2*(LINES / 3)); i++){
+                mvaddch(i, COLS/4, '|');
+            }
+            for(int i = LINES - 4; i > LINES / 4; i--){
+                mvaddch(i, COLS/4 * 3, '|');
+            }
+
+            for(int i = 8; i < (COLS / 4); i++){
+                mvaddch(2 * LINES / 3, i, '-');
+                mvaddch((LINES / 3) - 3, COLS - i, '-');
+            }
+            attroff(COLOR_PAIR(4));
+            break;
+        case 5:
+            attron(COLOR_PAIR(5));
+            for(int i = 1; i < (2*(LINES / 3)); i++){
+                mvaddch(i, COLS/4, '|');
+            }
+            for(int i = LINES - 4; i > LINES / 4; i--){
+                mvaddch(i, COLS/4 * 3, '|');
+            }
+
+            for(int i = 6; i < (COLS / 2); i++){
+                mvaddch(2 * LINES / 3, i, '-');
+                mvaddch( LINES / 4, COLS - i, '-');
+            }
+
+            for(int i = (2 * LINES / 5); i < (3*(LINES / 5)); i++){
+                mvaddch(i, COLS/2, '|');
+            }
+            attroff(COLOR_PAIR(5));
+            break;
     }
-    if(difficulty == 3){
-        for(int i = 1; i < (2*(LINES / 3)); i++){
-            mvaddch(i, COLS/4, '|');
-            mvaddch(LINES - (i + 3), COLS/4 * 3, '|');
-        }
-        refresh();
-    }
-    if(difficulty == 4){
-        for(int i = 1; i < (2*(LINES / 3)); i++){
-            mvaddch(i, COLS/4, '|');
-        }
-        for(int i = LINES - 4; i > LINES / 4; i--){
-            mvaddch(i, COLS/4 * 3, '|');
-        }
-
-        for(int i = 8; i < (COLS / 4); i++){
-            mvaddch(2 * LINES / 3, i, '-');
-            mvaddch((LINES / 3) - 3, COLS - i, '-');
-        }
-
-        refresh();
-    }
-
-    if(difficulty == 5){
-        for(int i = 1; i < (2*(LINES / 3)); i++){
-            mvaddch(i, COLS/4, '|');
-        }
-        for(int i = LINES - 4; i > LINES / 4; i--){
-            mvaddch(i, COLS/4 * 3, '|');
-        }
-
-        for(int i = 6; i < (COLS / 2); i++){
-            mvaddch(2 * LINES / 3, i, '-');
-            mvaddch( LINES / 4, COLS - i, '-');
-        }
-
-         for(int i = (2 * LINES / 5); i < (3*(LINES / 5)); i++){
-            mvaddch(i, COLS/2, '|');
-        }
-
-        refresh();
-    }
+    attroff(A_BOLD);
+    refresh();
 }
 
 //==================================
@@ -705,28 +729,34 @@ void resetHighScoreArray() {
 }
 
 //=================================
-//Clear All Menus
+//Clear Screen Options
 //=================================
 
-void clearMenu() {
-    mvprintw(LINES/2-7, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2-6, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2-5, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2-4, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2-3, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2-2, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2-1, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2,   COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2+1, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2+2, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2+3, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2+4, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2+5, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2+6, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2+7, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2+8, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2+9, COLS/2-31, "                                                                 ");
-    mvprintw(LINES/2+10, COLS/2-31, "                                                                 ");
+void clearMenu() { //int startX, int startY, int height, int width) {
+    /*for (int i=startX; i<height; i++)
+        for(int j=startY; j<width; j++)
+            mvaddch(i, j, ' ');*/
+    mvprintw(LINES/2-7, COLS/2-20, "                                        ");
+    mvprintw(LINES/2-6, COLS/2-20, "                                        ");
+    mvprintw(LINES/2-5, COLS/2-20, "                                        ");
+    mvprintw(LINES/2-4, COLS/2-20, "                                        ");
+    mvprintw(LINES/2-3, COLS/2-20, "                                        ");
+    mvprintw(LINES/2-2, COLS/2-20, "                                        ");
+    mvprintw(LINES/2-1, COLS/2-20, "                                        ");
+    mvprintw(LINES/2,   COLS/2-20, "                                        ");
+    mvprintw(LINES/2+1, COLS/2-20, "                                        ");
+    mvprintw(LINES/2+2, COLS/2-20, "                                        ");
+    mvprintw(LINES/2+3, COLS/2-20, "                                        ");
+    mvprintw(LINES/2+4, COLS/2-20, "                                        ");
+    mvprintw(LINES/2+5, COLS/2-20, "                                        ");
+    mvprintw(LINES/2+6, COLS/2-20, "                                        ");
+    mvprintw(LINES/2+7, COLS/2-20, "                                        ");
+}
+
+void clearGameBoard() {
+    for (int i=1; i<LINES-3; i++)
+        for (int j=1; j<COLS-1; j++)
+            mvaddch(i, j, ' ');
 }
 
 
@@ -737,6 +767,7 @@ void clearMenu() {
 
 void printHighScoreMenu() { 
     //init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    attron(A_BOLD);
     attron(COLOR_PAIR(3));
     mvprintw(LINES/2-7, COLS/2-20, "========================================");
     mvprintw(LINES/2-6, COLS/2-20, "*             HIGH SCORES              *");
@@ -754,6 +785,7 @@ void printHighScoreMenu() {
     mvprintw(LINES/2+6, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+7, COLS/2-20, "========================================");
     attroff(COLOR_PAIR(3));
+    attroff(A_BOLD);
 }
 
 void printHighScoreOptions(int position) {
@@ -842,11 +874,18 @@ void highScoreMenu() { //if 1, newHighScore allows entry
 //=================================
 //GAME OVER MENU
 //=================================
-void printScoreMenu(int won) { //won = 0: end of game, won=1: next level
+void printScoreMenu() {
     //init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    char message1[] = "GAME OVER!";
+    char message2[] = "NEXT LEVEL!";
+    char message[11];
+    if(winCondition == 2)
+        strcpy(message, message2);
+    else strcpy(message, message1);
+    attron(A_BOLD);
     attron(COLOR_PAIR(3));
     mvprintw(LINES/2-6, COLS/2-15, "*============================*");
-    mvprintw(LINES/2-5, COLS/2-15, "*          GAME OVER!        *");
+    mvprintw(LINES/2-5, COLS/2-15, "*                            *");
     mvprintw(LINES/2-4, COLS/2-15, "*                            *");
     mvprintw(LINES/2-3, COLS/2-15, "*                            *");
     mvprintw(LINES/2-2, COLS/2-15, "*                            *");
@@ -857,11 +896,14 @@ void printScoreMenu(int won) { //won = 0: end of game, won=1: next level
     mvprintw(LINES/2+3, COLS/2-15, "*                            *");
     mvprintw(LINES/2+4, COLS/2-15, "*                            *");
     mvprintw(LINES/2+5, COLS/2-15, "*============================*");
+
+    mvprintw(LINES/2-5, COLS/2-(strlen(message)/2), "%s", message);
     attroff(COLOR_PAIR(3));
+    attroff(A_BOLD);
 }
 
 
-void printScoreOptions(int position) {
+void printScoreOptions(int position) { //we need 
     //init_pair(4, COLOR_RED, COLOR_BLACK);
     attron(COLOR_PAIR(1));
     char optionMsg0[] = "View High Scores";
@@ -877,8 +919,15 @@ void printScoreOptions(int position) {
     char highScoreMsg5[] = "You did not make Top 5 :(";
     char highScoreMsg[25];
 
+    char levelMessage0[] = "You made it to Level 2!";
+    char levelMessage1[] = "You made it to Level 3!";
+    char levelMessage2[] = "You made it to Level 4!";
+    char levelMessage3[] = "You made it to Level 5!";
+    char levelMessage4[] = "YOU WON!!! Congratulations!";
+    char levelMessage[23];
+
     switch(winCondition) {
-        case 0:
+        case 0: //DEATH WITH NO HIGH SCORE
             //the following check is so, after entering score, they don't get Msg5 notice
             int lowscore = hiScoreArray[numHighScoreRecords-1].score;
             if(lowscore>gamerScore)
@@ -886,7 +935,7 @@ void printScoreOptions(int position) {
             else strcpy(highScoreMsg, ""); 
             strcpy(optionMsg, optionMsg0);
             break;
-        case 1:
+        case 1: //DEATH WITH NEW HIGH SCORE
             int scorePosition;
             for(int i=0; i<numHighScoreRecords; i++)
                 if(hiScoreArray[i].name == "")
@@ -910,8 +959,26 @@ void printScoreOptions(int position) {
             }
             strcpy(optionMsg, optionMsg1);
             break;
-        case 2:
-            strcpy(optionMsg, optionMsg2);
+        case 2: //NEXT LEVEL
+            switch(userLevel) {
+                case 2:
+                    strcpy(levelMessage, levelMessage0);
+                    break;
+                case 3:
+                    strcpy(levelMessage, levelMessage1);
+                    break;
+                case 4:
+                    strcpy(levelMessage, levelMessage2);
+                    break;
+                case 5:
+                    strcpy(levelMessage, levelMessage3);
+                    break;
+                case 6:
+                    strcpy(levelMessage, levelMessage4);  
+            }
+            if (wonWholeGame)
+                strcpy(optionMsg, optionMsg0); //Save Score!
+            else strcpy(optionMsg, optionMsg2); //NEXT LEVEL
             break;
     }
     
@@ -919,7 +986,9 @@ void printScoreOptions(int position) {
     switch(position) {
         case 0:
             attron(A_BLINK);
-            mvprintw(LINES/2-3, COLS/2-(strlen(highScoreMsg)/2), "%s", highScoreMsg);
+            if (winCondition==2) {
+                mvprintw(LINES/2-3, COLS/2-(strlen(levelMessage)/2), "%s", levelMessage);  
+            } else mvprintw(LINES/2-3, COLS/2-(strlen(highScoreMsg)/2), "%s", highScoreMsg);
             attroff(A_BLINK);
             mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
             attron(A_STANDOUT);
@@ -930,7 +999,9 @@ void printScoreOptions(int position) {
             break;
         case 1:
             attron(A_BLINK);
-            mvprintw(LINES/2-3, COLS/2-(strlen(highScoreMsg)/2), "%s", highScoreMsg);
+            if (winCondition==2) {
+                mvprintw(LINES/2-3, COLS/2-(strlen(levelMessage)/2), "%s", levelMessage);  
+            } else mvprintw(LINES/2-3, COLS/2-(strlen(highScoreMsg)/2), "%s", highScoreMsg);
             attroff(A_BLINK);
             mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
             mvprintw(LINES/2+1, COLS/2-(strlen(optionMsg)/2), "%s", optionMsg);
@@ -941,7 +1012,9 @@ void printScoreOptions(int position) {
             break;
         case 2:
             attron(A_BLINK);
-            mvprintw(LINES/2-3, COLS/2-(strlen(highScoreMsg)/2), "%s", highScoreMsg);
+            if (winCondition==2) {
+                mvprintw(LINES/2-3, COLS/2-(strlen(levelMessage)/2), "%s", levelMessage);  
+            } else mvprintw(LINES/2-3, COLS/2-(strlen(highScoreMsg)/2), "%s", highScoreMsg);
             attroff(A_BLINK);
             mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
             mvprintw(LINES/2+1, COLS/2-(strlen(optionMsg)/2), "%s", optionMsg);
@@ -950,35 +1023,57 @@ void printScoreOptions(int position) {
             mvprintw(LINES/2+3, COLS/2-2, "Exit");
             attroff(A_STANDOUT);
             break;
-        case 3: //for this case, animation is playing, and we just want flashing msg & score
+        case 3: //SPECIAL CASE, animation is playing, and we just want flashing msg & score
+            attron(A_BLINK);
+            if (winCondition==2) {
+                mvprintw(LINES/2-3, COLS/2-(strlen(levelMessage)/2), "%s", levelMessage);  
+            } else mvprintw(LINES/2-3, COLS/2-(strlen(highScoreMsg)/2), "%s", highScoreMsg);
+            attroff(A_BLINK);
             attron(A_BOLD);
             mvprintw(LINES/2-1, COLS/2, "%d", gamerScore);
             attroff(A_BOLD);
-            attron(A_BLINK);
             mvprintw(LINES/2+2, COLS/2-12, "(Press Space to Continue)");
-            attroff(A_BLINK);
             break;
     }
     attroff(COLOR_PAIR(1));
 }
 
-void scoreMenu() {
+void scoreMenu() { //REMEMBER WE HAVE WINCONDITION
 
     int position=0, alive=1;
     int ch;
     while(alive) {
-        printScoreMenu(1);
+        printScoreMenu(); //
         printScoreOptions(position);
         ch = getch();
         switch(ch) {
             case '\n':
-                if(position==0) //and winCondition != 2 for "Continue"
-                    highScoreMenu(); //
-                else if(position==1) {
+                if(position==0) { 
+                    if (winCondition==2) {//FIX THIS SHIT
+                        if (wonWholeGame==1) {
+                            userLevel=1; 
+                            wonWholeGame=0;
+                            //checkGamerScore();
+                            highScoreMenu();
+                            gamerScore=0;
+                            winCondition=0;
+                        }
+                        trophyCount=0;
+                        resetHighScoreArray();
+                        memset(userName, 0, sizeof(userName));
+                        numHighScoreRecords = 0;
+                        clearGameBoard();
+                        main();
+                        alive=0;
+                    }
+                    else highScoreMenu(); //think about this ..it works when not next level conditions
+                } 
+                else if(position==1) { //RETRY
                     clear(); //clear the screen
                     //reset all Globals
                         gamerScore=0; //reset progress
-                        boost = 5;
+                        trophyCount=0;
+                        //userLevel=1;
                         if (userName[0] != '\0') //don't save the score if no name
                             writeHighScoresToFile();
                         resetHighScoreArray();
@@ -1012,13 +1107,14 @@ void scoreMenu() {
 
 void printMenu() {
     //init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    attron(A_BOLD);
     attron(COLOR_PAIR(4));
     mvprintw(LINES/2-5, COLS/2-20, "========================================");
     mvprintw(LINES/2-4, COLS/2-20, "*           Welcome to Snake           *");
     mvprintw(LINES/2-3, COLS/2-20, "*                                      *");
     mvprintw(LINES/2-2, COLS/2-20, "* Options:                             *");
-    mvprintw(LINES/2-1, COLS/2-20, "*  -Speed:                             *");
-    mvprintw(LINES/2,   COLS/2-20, "*  -Difficulty:                        *");
+    mvprintw(LINES/2-1, COLS/2-20, "*     -Speed:                          *");
+    mvprintw(LINES/2,   COLS/2-20, "*     -Level:                          *");
     mvprintw(LINES/2+1, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+2, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+3, COLS/2-20, "*                                      *");
@@ -1026,6 +1122,7 @@ void printMenu() {
     mvprintw(LINES/2+5, COLS/2-20, "*                                      *");
     mvprintw(LINES/2+6, COLS/2-20, "========================================");
     attroff(COLOR_PAIR(4));
+    attroff(A_BOLD);
 }
 
 void printOptions(int position, int inGame) {
@@ -1041,7 +1138,7 @@ void printOptions(int position, int inGame) {
     switch(position) {
         case 0:
             mvprintw(LINES/2-1,   COLS/2, "[%d]", gameSpeed);
-            mvprintw(LINES/2, COLS/2, "[%d]", difficulty);
+            mvprintw(LINES/2, COLS/2, "[%d]", userLevel);
             mvprintw(LINES/2+2, COLS/2-(strlen(message)/2), "%s", message);
             mvprintw(LINES/2+3, COLS/2-8, "View High Scores");
             attron(A_STANDOUT);
@@ -1050,7 +1147,7 @@ void printOptions(int position, int inGame) {
             break;
         case 1:
             mvprintw(LINES/2-1,   COLS/2, "[%d]", gameSpeed);
-            mvprintw(LINES/2, COLS/2, "[%d]", difficulty);
+            mvprintw(LINES/2, COLS/2, "[%d]", userLevel);
             mvprintw(LINES/2+2, COLS/2-(strlen(message)/2), "%s", message);
             attron(A_STANDOUT);
             mvprintw(LINES/2+3, COLS/2-8, "View High Scores");
@@ -1059,7 +1156,7 @@ void printOptions(int position, int inGame) {
             break;
         case 2:
             mvprintw(LINES/2-1, COLS/2, "[%d]", gameSpeed);
-            mvprintw(LINES/2,   COLS/2, "[%d]", difficulty);
+            mvprintw(LINES/2,   COLS/2, "[%d]", userLevel);
             attron(A_STANDOUT);
             mvprintw(LINES/2+2, COLS/2-(strlen(message)/2), "%s", message);
             attroff(A_STANDOUT);
@@ -1069,7 +1166,7 @@ void printOptions(int position, int inGame) {
         case 3:
             mvprintw(LINES/2-1, COLS/2, "[%d]", gameSpeed);
             attron(A_STANDOUT);
-            mvprintw(LINES/2,   COLS/2, "<%d>", difficulty);
+            mvprintw(LINES/2,   COLS/2, "<%d>", userLevel);
             attroff(A_STANDOUT);
             mvprintw(LINES/2+2, COLS/2-(strlen(message)/2), "%s", message);
             mvprintw(LINES/2+3, COLS/2-8, "View High Scores");
@@ -1079,7 +1176,7 @@ void printOptions(int position, int inGame) {
             attron(A_STANDOUT);
             mvprintw(LINES/2-1, COLS/2, "<%d>", gameSpeed);
             attroff(A_STANDOUT);
-            mvprintw(LINES/2,   COLS/2, "[%d]", difficulty);
+            mvprintw(LINES/2,   COLS/2, "[%d]", userLevel);
             mvprintw(LINES/2+2, COLS/2-(strlen(message)/2), "%s", message);
             mvprintw(LINES/2+3, COLS/2-8, "View High Scores");
             mvprintw(LINES/2+4, COLS/2-2, "Exit");
@@ -1124,20 +1221,19 @@ void optionMenu(int inGame) { //inGame lets us know if the game is in progress
             case KEY_RIGHT:
                 if(position==4 && gameSpeed<5)
                     gameSpeed++;
-                else if(position==3 && difficulty<5)
-                    difficulty++;
+                else if(position==3 && userLevel<5)
+                    userLevel++;
                 break;
             case KEY_LEFT:
                 if(position==4 && gameSpeed>1)
                     gameSpeed--;
-                else if(position==3 && difficulty>1)
-                    difficulty--;
+                else if(position==3 && userLevel>1)
+                    userLevel--;
                 break;
         }
         refresh();
     }
     clearMenu();
-    placeWalls(difficulty);
     
 }
 
@@ -1157,7 +1253,8 @@ void paintBits(struct bit *bits, char ch){
     //For next level, we're gonna do color changing balls
     attron(COLOR_PAIR(1));
     for(int i=0; i<8; i++) {
-        //attron(COLOR_PAIR(rand()%6+1));
+        if(winCondition == 2)
+            attron(COLOR_PAIR(rand()%6+1)); //CELEBRATION BITS
         mvaddch(bits[i].x, bits[i].y, ch);
     }
     attroff(COLOR_PAIR(1));
@@ -1265,38 +1362,38 @@ void advanceBits(struct bit *bits) {
 
 void DeathAnimation(){
     struct snake_char * erase = (struct snake_char *)malloc(sizeof(struct snake_char));
-    //init_pair(5, COLOR_RED, COLOR_BLACK);
-    //init_pair(6, COLOR_YELLOW, COLOR_BLACK);
     
-    //RED AND YELLOW FLASHING BEFORE DEATH
-    for(int i=0; i<2; i++) {
-        
-        erase = head;
-        attron(COLOR_PAIR(5));
-        mvaddch(erase->x, erase->y, HEAD_CHAR);
-        erase=erase->prev;
-        while(erase->prev != NULL) {
-            mvaddch(erase->x, erase->y, SNAKE_CHAR);
+    if(winCondition<2) { //ONLY IF DEATH
+        //RED AND YELLOW FLASHING BEFORE DEATH
+        for(int i=0; i<2; i++) {
+            
+            erase = head;
+            attron(COLOR_PAIR(5));
+            mvaddch(erase->x, erase->y, HEAD_CHAR);
             erase=erase->prev;
-        }
-        mvaddch(erase->x,erase->y,SNAKE_CHAR);
-        refresh();
-        usleep(140000);
+            while(erase->prev != NULL) {
+                mvaddch(erase->x, erase->y, SNAKE_CHAR);
+                erase=erase->prev;
+            }
+            mvaddch(erase->x,erase->y,SNAKE_CHAR);
+            refresh();
+            usleep(140000);
 
-        erase = head;
-        attron(COLOR_PAIR(1));
-        mvaddch(erase->x, erase->y, HEAD_CHAR);
-        erase=erase->prev;
-        while(erase->prev != NULL) {
-            mvaddch(erase->x, erase->y, SNAKE_CHAR);
+            erase = head;
+            attron(COLOR_PAIR(1));
+            mvaddch(erase->x, erase->y, HEAD_CHAR);
             erase=erase->prev;
+            while(erase->prev != NULL) {
+                mvaddch(erase->x, erase->y, SNAKE_CHAR);
+                erase=erase->prev;
+            }
+            mvaddch(erase->x,erase->y, SNAKE_CHAR);
+            refresh();
+            usleep(140000);
         }
-        mvaddch(erase->x,erase->y, SNAKE_CHAR);
-        refresh();
-        usleep(140000);
+        attroff(COLOR_PAIR(1));
+        attroff(COLOR_PAIR(5));
     }
-    attroff(COLOR_PAIR(1));
-    attroff(COLOR_PAIR(5));
     
     //erase snake from screen
     erase = head;
@@ -1306,52 +1403,59 @@ void DeathAnimation(){
     }
     mvaddch(erase->x,erase->y,' ');
 
-    printScoreMenu(1);
+    printScoreMenu();
     printScoreOptions(3);
 
-    int bits1RandomX = head->x;
-    if(bits1RandomX>=LINES-4)
-        bits1RandomX -= 2;
-    else if (bits1RandomX<=1)
-        bits1RandomX += 2;
+    int bits1RandomX = 15; //we assume initially they're "celebration" bits
+    int bits1RandomY = 15;
+    int bits2RandomX = 15;
+    int bits2RandomY = COLS - 15;
 
-    int bits1RandomY = head->y;
-    if(bits1RandomY>=COLS-2)
-        bits1RandomY -= 2;
-    else if (bits1RandomY<=1)
-        bits1RandomY += 2;
+    if (winCondition<2) { //if Death, we want to explode on snake so change coordinates
+        bits1RandomX = head->x;
+        if(bits1RandomX>=LINES-4)
+            bits1RandomX -= 2;
+        else if (bits1RandomX<=1)
+            bits1RandomX += 2;
 
-    int bits2RandomX = tail->x;
-    if(bits2RandomX>=LINES-4)
-        bits2RandomX -= 2;
-    else if (bits2RandomX<=1)
-        bits2RandomX += 2;
+        bits1RandomY = head->y;
+        if(bits1RandomY>=COLS-2)
+            bits1RandomY -= 2;
+        else if (bits1RandomY<=1)
+            bits1RandomY += 2;
 
-    int bits2RandomY = tail->y;
-    if(bits2RandomY>=COLS-2)
-        bits2RandomY -= 2;
-    else if (bits2RandomY<=1)
-        bits2RandomY += 2;
+        bits2RandomX = tail->x;
+        if(bits2RandomX>=LINES-4)
+            bits2RandomX -= 2;
+        else if (bits2RandomX<=1)
+            bits2RandomX += 2;
 
-    if((head->x>=LINES/2-6 && head->x<=LINES/2+5) && (head->y>=COLS/2-15 && head->y<=COLS/2+15))
-        do {
-            bits1RandomX = rand()%LINES - 5;
-            bits1RandomY = rand()%COLS - 1;
-            if(bits1RandomX < 2)
-                bits1RandomX = 2;
-            if(bits1RandomY < 2)
-                bits1RandomY = 2;
-        } while ((bits1RandomX>=LINES/2-6 && bits1RandomX<=LINES/2+5) && (bits1RandomY>=COLS/2-15 && bits1RandomY<=COLS/2+15));
-    
-    if((tail->x>=LINES/2-6 && tail->x<=LINES/2+5) && (tail->y>=COLS/2-15 && tail->y<=COLS/2+15))
-        do {
-            bits2RandomX = rand()%LINES - 5;
-            bits2RandomY = rand()%COLS - 1;
-            if(bits2RandomX < 2)
-                bits2RandomX = 2;
-            if(bits2RandomY < 2)
-                bits2RandomY = 2;
-        } while ((bits2RandomX>=LINES/2-6 && bits2RandomX<=LINES/2+5) && (bits2RandomY>=COLS/2-15 && bits2RandomY<=COLS/2+15));
+        bits2RandomY = tail->y;
+        if(bits2RandomY>=COLS-2)
+            bits2RandomY -= 2;
+        else if (bits2RandomY<=1)
+            bits2RandomY += 2;
+
+        if((head->x>=LINES/2-6 && head->x<=LINES/2+5) && (head->y>=COLS/2-15 && head->y<=COLS/2+15))
+            do {
+                bits1RandomX = rand()%LINES - 5;
+                bits1RandomY = rand()%COLS - 1;
+                if(bits1RandomX < 2)
+                    bits1RandomX = 2;
+                if(bits1RandomY < 2)
+                    bits1RandomY = 2;
+            } while ((bits1RandomX>=LINES/2-6 && bits1RandomX<=LINES/2+5) && (bits1RandomY>=COLS/2-15 && bits1RandomY<=COLS/2+15));
+        
+        if((tail->x>=LINES/2-6 && tail->x<=LINES/2+5) && (tail->y>=COLS/2-15 && tail->y<=COLS/2+15))
+            do {
+                bits2RandomX = rand()%LINES - 5;
+                bits2RandomY = rand()%COLS - 1;
+                if(bits2RandomX < 2)
+                    bits2RandomX = 2;
+                if(bits2RandomY < 2)
+                    bits2RandomY = 2;
+            } while ((bits2RandomX>=LINES/2-6 && bits2RandomX<=LINES/2+5) && (bits2RandomY>=COLS/2-15 && bits2RandomY<=COLS/2+15));
+    }
 
     generateBits(bits1, bits1RandomX, bits1RandomY); //start at head of snake
     generateBits(bits2, bits2RandomX, bits2RandomY); //start at tail of snake
@@ -1362,18 +1466,13 @@ void DeathAnimation(){
         paintBits(bits2, BITS_CHAR);
         refresh();
         usleep(50000);
-        paintBits(bits1, ' '); //clear bits with ' '
-        paintBits(bits2, ' ');
+        if(!wonWholeGame) { //when they win the game, as celebration we want bits to stay and paint screen
+            paintBits(bits1, ' '); //clear bits with ' '
+            paintBits(bits2, ' ');
+        }
         advanceBits(bits1);
         advanceBits(bits2);
     } while(getch() != ' ');
-    /*while(getch() != KEY_DOWN) {
-        paintBits(BITS_CHAR); //paint bits with BITS_CHAR
-        refresh();
-        usleep(50000);
-        paintBits(' '); //clear bits with ' '
-        advanceBits();
-    }*/
     clearMenu();
 }
 
@@ -1458,5 +1557,5 @@ void introSplashScreen() {
             exitSplash=1;
     }
     attroff(COLOR_PAIR(5));
-    clearMenu();
+    clearGameBoard();
 }
