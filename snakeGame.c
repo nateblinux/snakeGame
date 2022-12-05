@@ -17,7 +17,7 @@
 #define JUMP_SPACES 3 // # of spaces to jump
 #define BOOST_DIV 200 // number to divide area of screen by for max boosts
 #define SPEED_SCALING 100 //scaling factor for speed increase with snake len
-#define version    "version 4.3"
+#define version    "version 5.0"
 #define TROPHY_REQUIREMENT 10
 
 //death animation
