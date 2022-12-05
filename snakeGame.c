@@ -172,6 +172,7 @@ int winCondition=0; //if 0 = dead, no high score
                     //if 2 = continue to next level
 int wonWholeGame=0; //if 1 = game is beat
 int playAnimation=1;
+char dir;
 
 int main(){
     srand ( time(NULL) );//seed rand with current time to prevent same sequence of numbers
@@ -253,7 +254,6 @@ void start_screen(){
 }
 
 void game_loop(int curr_x, int curr_y){
-    char dir = 'r';
     int ch;
     int addch = 0;
     int jump = 0;
@@ -433,12 +433,6 @@ void game_loop(int curr_x, int curr_y){
 
 void init_snake(int * curr_x, int * curr_y){
 
-    //create the snakepit window
-    //WINDOW * scrn = newwin(LINES - 2, COLS - 2, 1,1);
-
-    //create snake COLOR pair
-    //init_pair(1, COLOR_GREEN, COLOR_BLACK);
-
     //initialize the x and y coordinates of snake head
     *curr_x = LINES / 2;
     *curr_y = ((COLS / 2)-INIT_LEN) - 10; //snake head dead center shifted 10 for levels
@@ -450,17 +444,51 @@ void init_snake(int * curr_x, int * curr_y){
     //initialize head and tail of snake
     head->x = *curr_x;
     head->y = *curr_y;
-    tail->x = *curr_x;
-    tail->y = *curr_y - 1;
+
+    //choose random start direction and assign tail x,y
+    int init_dir = rand() % 3;
+    if(init_dir == 0){
+        dir = 'r';
+        tail->x = *curr_x;
+        tail->y = *curr_y - 1;
+    }
+    if(init_dir == 1){
+        dir = 'l';
+        tail->x = *curr_x;
+        tail->y = *curr_y + 1;
+    }
+    if(init_dir == 2){
+        dir = 'u';
+        tail->x = *curr_x - 1;
+        tail->y = *curr_y;
+    }
+    if(init_dir == 3){
+        dir = 'd';
+        tail->x = *curr_x + 1;
+        tail->y = *curr_y;
+    }
 
 
     //add the rest of the initial snake body elements
     for(int i = 0; i < INIT_LEN - 2; i++){
-        *curr_y += 1;
+        switch(dir) {
+            case 'l':
+                *curr_y = *curr_y - 1;
+                break;
+            case 'r':
+                *curr_y = *curr_y + 1;
+                break;
+            case 'u':
+                *curr_x = *curr_x - 1;
+                break;
+            case 'd':
+                *curr_x = *curr_x+ 1;
+                break;
+            default:
+                break;  
+        }
         new_head(*curr_x, *curr_y);
-    }
-
-    
+    }    
 
     //print the snake head by looping through the linked list
     struct snake_char * next = (struct snake_char *)malloc(sizeof(struct snake_char));
@@ -473,8 +501,6 @@ void init_snake(int * curr_x, int * curr_y){
 
     attroff(COLOR_PAIR(1));
     
-    //return window with initial config
-    //return scrn;
 }
 
 int DetectCollision(int new_x, int new_y) {
