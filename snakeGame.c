@@ -18,7 +18,7 @@
 #define BOOST_DIV 200 // number to divide area of screen by for max boosts
 #define SPEED_SCALING 100 //scaling factor for speed increase with snake len
 #define version    "version 4.2"
-#define TROPHY_REQUIREMENT 2
+#define TROPHY_REQUIREMENT 20
 
 //death animation
 #define BITS_CHAR  'o'
@@ -391,10 +391,6 @@ void game_loop(int curr_x, int curr_y){
         attron(A_BOLD);
         mvaddch(LINES-2, COLS/2+13, ']');
         mvprintw(LINES-2, COLS-24, "                        ");
-        mvprintw(LINES-2, COLS-4, "/%d", TROPHY_REQUIREMENT);
-        mvprintw(LINES-2, COLS-(14+TROPHY_REQUIREMENT), "Trophy's:");
-        for (int i=0; i<trophyCount; i++)
-            mvaddch(LINES-2, COLS-5-i, '*');
         attroff(COLOR_PAIR(3));
         
 
