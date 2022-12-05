@@ -390,7 +390,6 @@ void game_loop(int curr_x, int curr_y){
         attron(COLOR_PAIR(3));
         attron(A_BOLD);
         mvaddch(LINES-2, COLS/2+13, ']');
-        mvprintw(LINES-2, COLS-24, "                        ");
         attroff(COLOR_PAIR(3));
         
 
@@ -428,11 +427,6 @@ void game_loop(int curr_x, int curr_y){
 }
 
 void init_snake(int * curr_x, int * curr_y){
-    //create the snakepit window
-    //WINDOW * scrn = newwin(LINES - 2, COLS - 2, 1,1);
-
-    //create snake COLOR pair
-    //init_pair(1, COLOR_GREEN, COLOR_BLACK);
 
     //initialize the x and y coordinates of snake head
     *curr_x = LINES / 2;
