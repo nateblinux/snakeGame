@@ -17,8 +17,7 @@
 #define JUMP_SPACES 3 // # of spaces to jump
 #define BOOST_DIV 200 // number to divide area of screen by for max boosts
 #define SPEED_SCALING 100 //scaling factor for speed increase with snake len
-#define version    "version 4.2"
-#define TROPHY_REQUIREMENT 20
+#define version    "version 4.3"
 
 //death animation
 #define BITS_CHAR  'o'
@@ -158,7 +157,6 @@ struct snake_char * tail = NULL;
 struct trophy * food = NULL;
 int gameSpeed = 3; //initial speed
 int gamerScore = 0;
-int trophyCount = 0;
 int userLevel = 1; //this WAS difficulty
 int endGame = 0;
 int snake_len;
@@ -194,8 +192,7 @@ int main(){
     tail->prev = NULL;
 
     initscr(); //start curses screen
-    boost = 12;//(LINES * COLS) / BOOST_DIV; //start with half boost
-
+    boost = 12;//start with boost 12
     //check if terminal supports COLORs
     if(has_colors() == FALSE)
 	{	endwin();
@@ -235,16 +232,11 @@ int main(){
     //main game loop
     game_loop(curr_x, curr_y);
     
-    //attroff(COLOR_PAIR(1)); //turn off COLORs 
     endwin(); //end curses
     return 0;
 }
 
 void start_screen(){
-     //COLOR pair for border
-    //init_pair(2, COLOR_CYAN, COLOR_BLACK);
-
-
     //create border (window, left side, right side, top, bottom, corner, corner, corner, corner) and apply COLOR
     attron(COLOR_PAIR(4));
     border('|', '|', '-', '-', '+', '+', '+', '+');
@@ -347,7 +339,6 @@ void game_loop(int curr_x, int curr_y){
             snake_len += food->new_len;
             gamerScore += food->loops_alive; //score decreases as loops_alive decreases
             food->loops_alive = 0;
-            trophyCount++;
             if(boost < 24) { //cap the number of boosts able to be collected
                 if(boost + 3 < 24)
                     boost+=3;
@@ -418,7 +409,8 @@ void game_loop(int curr_x, int curr_y){
         placeWalls();
 
         refresh();
-        if(trophyCount == TROPHY_REQUIREMENT){
+        
+        if(snake_len >= LINES + COLS){
             mvaddch(food->X, food->Y, ' '); //clear food
             win();
             endGame = 1;
@@ -440,6 +432,7 @@ void init_snake(int * curr_x, int * curr_y){
     head->x = *curr_x;
     head->y = *curr_y;
 
+    //choose random start direction and assign tail x,y
     int init_dir = rand() % 3;
     if(init_dir == 0){
         dir = 'r';
@@ -482,9 +475,7 @@ void init_snake(int * curr_x, int * curr_y){
                 break;  
         }
         new_head(*curr_x, *curr_y);
-    }
-
-    
+    }    
 
     //print the snake head by looping through the linked list
     struct snake_char * next = (struct snake_char *)malloc(sizeof(struct snake_char));
@@ -497,8 +488,6 @@ void init_snake(int * curr_x, int * curr_y){
 
     attroff(COLOR_PAIR(1));
     
-    //return window with initial config
-    //return scrn;
 }
 
 int DetectCollision(int new_x, int new_y) {
@@ -756,10 +745,7 @@ void resetHighScoreArray() {
 //Clear Screen Options
 //=================================
 
-void clearMenu() { //int startX, int startY, int height, int width) {
-    /*for (int i=startX; i<height; i++)
-        for(int j=startY; j<width; j++)
-            mvaddch(i, j, ' ');*/
+void clearMenu() { 
     mvprintw(LINES/2-7, COLS/2-20, "                                        ");
     mvprintw(LINES/2-6, COLS/2-20, "                                        ");
     mvprintw(LINES/2-5, COLS/2-20, "                                        ");
@@ -790,7 +776,6 @@ void clearGameBoard() {
 //=================================
 
 void printHighScoreMenu() { 
-    //init_pair(3, COLOR_BLUE, COLOR_BLACK);
     attron(A_BOLD);
     attron(COLOR_PAIR(3));
     mvprintw(LINES/2-7, COLS/2-20, "========================================");
@@ -1077,12 +1062,11 @@ void scoreMenu() { //REMEMBER WE HAVE WINCONDITION
                         if (wonWholeGame==1) {
                             userLevel=1; 
                             wonWholeGame=0;
-                            //checkGamerScore();
                             highScoreMenu();
                             gamerScore=0;
                             winCondition=0;
                         }
-                        trophyCount=0;
+                        
                         resetHighScoreArray();
                         memset(userName, 0, sizeof(userName));
                         numHighScoreRecords = 0;
@@ -1096,7 +1080,6 @@ void scoreMenu() { //REMEMBER WE HAVE WINCONDITION
                     clear(); //clear the screen
                     //reset all Globals
                         gamerScore=0; //reset progress
-                        trophyCount=0;
                         //userLevel=1;
                         if (userName[0] != '\0') //don't save the score if no name
                             writeHighScoresToFile();
