@@ -17,8 +17,8 @@
 #define JUMP_SPACES 3 // # of spaces to jump
 #define BOOST_DIV 200 // number to divide area of screen by for max boosts
 #define SPEED_SCALING 100 //scaling factor for speed increase with snake len
-#define version    "version 4.2"
-#define TROPHY_REQUIREMENT 2
+#define version    "version 4.3"
+#define TROPHY_REQUIREMENT 10
 
 //death animation
 #define BITS_CHAR  'o'
@@ -113,7 +113,7 @@ void game_over();
 void win();
 
 //Death animation prototypes:
-void DeathAnimation();
+void DeathAnimation(int);
 
 void advanceBits(struct bit *);
 
@@ -541,7 +541,7 @@ void del_tail(){
 //==================================
 
 void game_over(){
-    DeathAnimation();
+    DeathAnimation(0);
     checkGamerScore(); 
     scoreMenu(); //remember we have WINCONDITION
     clear();
@@ -550,11 +550,15 @@ void game_over(){
 
 void win(){
     winCondition=2; //because we won
-    if(++userLevel>5) {
+    wonWholeGame=0;
+    userLevel++;
+    if(userLevel>5) {
+        userLevel=1;
         wonWholeGame=1;
         clearGameBoard();
+        checkGamerScore();
     }
-    DeathAnimation(); //this will be WINCONDITION animation
+    DeathAnimation(1); //this will be WINCONDITION animation
     scoreMenu(); //using WINCONDITION
     clear();
     refresh();
@@ -836,7 +840,8 @@ void printHighScoreOptions(int position) {
             getnstr(userName, 8);
             hiScoreArray[enterNamePosition].name = userName;
             newHighScore=0; //turn this off, because already entered.
-            winCondition=0; //they no longer have a high score to enter
+            if(!wonWholeGame)
+                winCondition=0; //they no longer have a high score to enter
             curs_set(0);
             break;
     }
@@ -1048,17 +1053,19 @@ void scoreMenu() { //REMEMBER WE HAVE WINCONDITION
         ch = getch();
         switch(ch) {
             case '\n':
-                if(position==0) { 
+                if(position==0) {
                     if (winCondition==2) {//FIX THIS SHIT
                         if (wonWholeGame==1) {
                             userLevel=1; 
                             wonWholeGame=0;
-                            //checkGamerScore();
-                            highScoreMenu();
                             gamerScore=0;
+                            highScoreMenu();
                             winCondition=0;
+                            
                         }
                         trophyCount=0;
+                        if (userName[0] != '\0') //don't save the score if no name
+                            writeHighScoresToFile();
                         resetHighScoreArray();
                         memset(userName, 0, sizeof(userName));
                         numHighScoreRecords = 0;
@@ -1253,7 +1260,7 @@ void paintBits(struct bit *bits, char ch){
     //For next level, we're gonna do color changing balls
     attron(COLOR_PAIR(1));
     for(int i=0; i<8; i++) {
-        if(winCondition == 2)
+        if(winCondition == 2 || wonWholeGame)
             attron(COLOR_PAIR(rand()%6+1)); //CELEBRATION BITS
         mvaddch(bits[i].x, bits[i].y, ch);
     }
@@ -1360,10 +1367,10 @@ void advanceBits(struct bit *bits) {
     }
 }
 
-void DeathAnimation(){
+void DeathAnimation(int win){ //0 for DEATH, 1 for WIN
     struct snake_char * erase = (struct snake_char *)malloc(sizeof(struct snake_char));
     
-    if(winCondition<2) { //ONLY IF DEATH
+    if(!win) { //ONLY IF DEATH
         //RED AND YELLOW FLASHING BEFORE DEATH
         for(int i=0; i<2; i++) {
             
@@ -1411,7 +1418,7 @@ void DeathAnimation(){
     int bits2RandomX = 15;
     int bits2RandomY = COLS - 15;
 
-    if (winCondition<2) { //if Death, we want to explode on snake so change coordinates
+    if (!win) { //if Death, we want to explode on snake so change coordinates
         bits1RandomX = head->x;
         if(bits1RandomX>=LINES-4)
             bits1RandomX -= 2;
@@ -1512,6 +1519,7 @@ void introSplashScreen() {
     int current_col = COLS/2-30;
     int border=0, sideBorder=0, printVersion=0;
     attron(COLOR_PAIR(5));
+    attron(A_BOLD);
     for (int i=0; i<strlen(letterS); i++) {
         if(i%12==0) {
             current_line++;
@@ -1541,6 +1549,7 @@ void introSplashScreen() {
         refresh();
         usleep(20000);
     }
+    attroff(A_BOLD);
     attron(A_BLINK);
     mvprintw(LINES/2+8, COLS/2-11, "(Press Space to Continue)");
     playAnimation=0;
